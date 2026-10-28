@@ -23,6 +23,9 @@ Available:
 - `merf_sae()`: Fay-Herriot model with a random forest for the fixed
   part (replacing or correcting the linear predictor), with parametric
   bootstrap MSE.
+- `scfh_sae()` (experimental): spatially clustered Fay-Herriot model,
+  where neighbouring areas tend to share a regime with its own
+  coefficients, with a bootstrap MSE that reruns the clustering.
 
 - `benchmark_flexsae()`: benchmarking to aggregate targets (known,
   estimated or the direct estimates of the same survey; by group or in

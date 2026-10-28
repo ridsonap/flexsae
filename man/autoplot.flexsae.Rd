@@ -7,7 +7,7 @@
 \method{autoplot}{flexsae}(
   object,
   type = c("estimates", "scatter", "rse", "residuals", "qq", "caterpillar", "partial",
-    "importance"),
+    "importance", "clusters"),
   ...
 )
 }
@@ -30,7 +30,9 @@ estimates against the sampling variance, with reference lines at 25 and
 \eqn{v_d} with known parameters);
 \item \code{"partial"}: partial dependence of the fixed part (\code{\link[=partial_flexsae]{partial_flexsae()}});
 \item \code{"importance"}: variable importance (\code{\link[=importance_flexsae]{importance_flexsae()}}, \code{merf_sae()}
-models).
+models);
+\item \code{"clusters"}: coefficients by cluster with intervals
+\eqn{\pm z\,\mathrm{SE}} (\code{\link[=scfh_sae]{scfh_sae()}} models).
 }}
 
 \item{...}{Passed to \code{\link[=partial_flexsae]{partial_flexsae()}} (\code{type = "partial"}) or

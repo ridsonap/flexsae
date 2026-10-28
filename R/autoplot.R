@@ -22,7 +22,9 @@ ggplot2::autoplot
 #'     \eqn{v_d} with known parameters);
 #'   * `"partial"`: partial dependence of the fixed part ([partial_flexsae()]);
 #'   * `"importance"`: variable importance ([importance_flexsae()], `merf_sae()`
-#'     models).
+#'     models);
+#'   * `"clusters"`: coefficients by cluster with intervals
+#'     \eqn{\pm z\,\mathrm{SE}} ([scfh_sae()] models).
 #' @param ... Passed to [partial_flexsae()] (`type = "partial"`) or
 #'   [importance_flexsae()] (`type = "importance"`).
 #'
@@ -40,7 +42,7 @@ ggplot2::autoplot
 #' autoplot(fit)
 #' autoplot(fit, type = "partial")
 autoplot.flexsae <- function(object, type = c("estimates", "scatter", "rse", "residuals", "qq",
-                                              "caterpillar", "partial", "importance"), ...) {
+                                              "caterpillar", "partial", "importance", "clusters"), ...) {
   type <- match.arg(type)
   df <- object$df_est
   z <- stats::qnorm(1 - (1 - object$conf_level) / 2)
@@ -49,6 +51,9 @@ autoplot.flexsae <- function(object, type = c("estimates", "scatter", "rse", "re
   col_model <- "#1D6A5C"
   s <- df$sampled
 
+  if (type == "clusters" && !inherits(object, "flexsae_scfh")) {
+    cli::cli_abort("{.code type = \"clusters\"} needs a {.fn scfh_sae} model.", call = NULL)
+  }
   if (type == "rse" && all(is.na(df$mse))) {
     cli::cli_abort("The model has no MSE; fit it with {.code mse = \"bootstrap\"}.", call = NULL)
   }
@@ -147,6 +152,22 @@ autoplot.flexsae <- function(object, type = c("estimates", "scatter", "rse", "re
       ggplot2::ggplot(imp, ggplot2::aes(x = .data$importance, y = .data$variable)) +
         ggplot2::geom_col(fill = col_model) +
         ggplot2::labs(x = paste0("Importance (", attr(imp, "type"), ")"), y = NULL)
+    },
+    clusters = {
+      cf <- object$coefficients
+      d <- data.frame(
+        cluster = factor(sub("^\\[(\\d+)\\] .*", "\\1", rownames(cf)), levels = seq_len(object$K)),
+        term = sub("^\\[\\d+\\] ", "", rownames(cf)),
+        estimate = cf$Estimate,
+        se = cf$`Std. Error`
+      )
+      ggplot2::ggplot(d, ggplot2::aes(x = .data$estimate, y = .data$cluster)) +
+        ggplot2::geom_errorbar(ggplot2::aes(xmin = .data$estimate - z * .data$se,
+                                            xmax = .data$estimate + z * .data$se),
+                               width = 0, orientation = "y", colour = col_model, alpha = 0.6) +
+        ggplot2::geom_point(colour = col_model, size = 1.8) +
+        ggplot2::facet_wrap(~term, scales = "free_x") +
+        ggplot2::labs(x = "Coefficient", y = "Cluster")
     }
   )
   p + theme

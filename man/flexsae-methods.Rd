@@ -31,7 +31,8 @@
 
 \item{type}{For \code{residuals()}: \code{"raw"} gives \eqn{y_d - \hat\theta_d};
 \code{"pearson"} gives the standardized marginal residuals
-\eqn{(y_d - \hat m(x_d)) / \sqrt{\hat\sigma^2_v + \psi_d}}. Unsampled areas are \code{NA}.}
+\eqn{(y_d - \hat m(x_d)) / \sqrt{\hat\sigma^2_v + \psi_d}} (with the
+variance of the area's cluster for \code{\link[=scfh_sae]{scfh_sae()}}). Unsampled areas are \code{NA}.}
 }
 \value{
 \code{print()} returns \code{x} invisibly. \code{summary()} returns an object of

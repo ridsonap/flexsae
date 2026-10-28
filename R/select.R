@@ -1,12 +1,15 @@
 #' Covariate Selection for flexsae Models
 #'
-#' Selects the covariates of a fitted model and refits it with them.
+#' Selects the covariates of a fitted model and refits it with them, or, for
+#' [scfh_sae()], the number of clusters and the spatial penalty.
 #'
-#' @param object A model from [pspline_sae()] or [merf_sae()].
+#' @param object A model from [pspline_sae()], [merf_sae()] or [scfh_sae()].
 #' @param method `"step"` (stepwise search on an information criterion;
-#'   `pspline_sae()` models) or `"boruta"` (all-relevant selection with the
-#'   Boruta algorithm; `merf_sae()` models). The default depends on the model.
-#' @param criterion For `"step"`: `"BIC"` (default), `"AIC"` or `"KIC"`.
+#'   `pspline_sae()` models), `"boruta"` (all-relevant selection with the
+#'   Boruta algorithm; `merf_sae()` models) or `"grid"` (\eqn{K} and
+#'   \eqn{\phi}; `scfh_sae()` models). The default depends on the model.
+#' @param criterion For `"step"` and `"grid"`: `"BIC"` (default), `"AIC"` or
+#'   `"KIC"`.
 #' @param direction For `"step"`: `"backward"` (default), `"both"` or
 #'   `"forward"`.
 #' @param scope For `"step"`: optional one-sided formula of the largest model,
@@ -17,6 +20,11 @@
 #'   `maxRuns` and `pValue`.
 #' @param seed For `"boruta"`: optional seed; the random number stream of the
 #'   session is restored afterwards.
+#' @param K,phi For `"grid"`: candidate numbers of clusters and spatial
+#'   penalties.
+#' @param band For `"grid"`: range of the moderate penalties used by the
+#'   selection rule.
+#' @param delta For `"grid"`: tolerance of the stability plateau.
 #'
 #' @details
 #' **Stepwise (`pspline_sae()`).** Every candidate model is fitted by maximum
@@ -44,12 +52,37 @@
 #' them. Permutation importance can favour correlated covariates (Strobl et
 #' al., 2008).
 #'
+#' **Grid (`scfh_sae()`).** The two-step rule of Maranzano, Mattera and
+#' Sugasawa (2026, sec. 4.3). Every pair of `K` and `phi` is fitted (without
+#' MSE; `K = 1`, the Fay-Herriot model, once); a fit is admissible when every
+#' cluster has enough sampled areas. The criterion uses the unpenalized
+#' log-likelihood \eqn{\ell} of the sampled areas at the fitted partition and
+#' \eqn{k = K(P + 2)} parameters (\eqn{P + 1} coefficients and one variance
+#' per cluster), with the formulas above. (1) For every penalty in `band`, the
+#' admissible `K` with the smallest criterion; \eqn{\hat K} is the most
+#' frequent one, ties to the smaller. (2) At \eqn{\hat K}, the stability
+#' \eqn{S(\phi)} is the mean adjusted Rand index (Hubert and Arabie, 1985)
+#' between the partition at \eqn{\phi} and those at the neighbouring
+#' admissible penalties of the grid in `band` (our reading of "adjacent grid
+#' values"); \eqn{\hat\phi} is the smallest penalty
+#' with \eqn{S(\phi) \ge \max S - \delta}. The paper gives the number of
+#' parameters as \eqn{K(P + 2)} without a fuller definition of its "effective
+#' degrees of freedom". The partition is optimized on the data, so in-sample
+#' criteria still tend to choose too many clusters (sec. 4.3 of the paper);
+#' check the grid and the Fay-Herriot model (`K = 1`) as well. The selected
+#' model is refitted with the MSE settings of `object`.
+#'
 #' @return An object of class `"flexsae_selection"`: a list with `model` (the
-#'   refitted model), `formula`, `selected` (kept terms or variables),
-#'   `method`, and for `"step"` the `path` (data frame of steps) and
-#'   `criterion`, for `"boruta"` the `decision` table.
+#'   refitted model), `formula`, `selected` (kept terms or variables; for
+#'   `"grid"` the selected `K` and `phi`), `method`, and for `"step"` the
+#'   `path` (data frame of steps) and `criterion`, for `"boruta"` the
+#'   `decision` table, for `"grid"` the `grid` table (one row per fit, with
+#'   `stability` at \eqn{\hat K}) and `criterion`.
 #'
 #' @references
+#' Hubert, L. and Arabie, P. (1985). Comparing partitions. *Journal of
+#' Classification*, 2(1), 193-218. \doi{10.1007/BF01908075}
+#'
 #' Kursa, M. B. and Rudnicki, W. R. (2010). Feature selection with the Boruta
 #' package. *Journal of Statistical Software*, 36(11), 1-13.
 #' \doi{10.18637/jss.v036.i11}
@@ -57,6 +90,11 @@
 #' Marhuenda, Y., Morales, D. and Pardo, M. C. (2014). Information criteria
 #' for Fay-Herriot model selection. *Computational Statistics & Data
 #' Analysis*, 70, 268-280. \doi{10.1016/j.csda.2013.09.016}
+#'
+#' Maranzano, P., Mattera, R. and Sugasawa, S. (2026). Small area estimation
+#' under spatial regimes: spatially clustered Fay-Herriot models for
+#' agricultural indicators. arXiv preprint 2608.13638.
+#' \doi{10.48550/arXiv.2608.13638}
 #'
 #' Strobl, C., Boulesteix, A.-L., Kneib, T., Augustin, T. and Zeileis, A.
 #' (2008). Conditional variable importance for random forests. *BMC
@@ -83,14 +121,27 @@ select_flexsae <- function(
   trace = TRUE,
   max_runs = 100,
   p_value = 0.01,
-  seed = NULL
+  seed = NULL,
+  K = 1:4,
+  phi = seq(0, 1, by = 0.125),
+  band = c(0.25, 1),
+  delta = 0.05
 ) {
   if (!inherits(object, "flexsae")) {
-    cli::cli_abort("{.arg object} must be a model from {.fn pspline_sae} or {.fn merf_sae}.", call = NULL)
+    cli::cli_abort("{.arg object} must be a model from {.fn pspline_sae}, {.fn merf_sae} or {.fn scfh_sae}.",
+                   call = NULL)
   }
   is_merf <- identical(object$model, "merf_sae")
-  method <- method %||% if (is_merf) "boruta" else "step"
-  method <- match.arg(method, c("step", "boruta"))
+  is_scfh <- identical(object$model, "scfh_sae")
+  method <- method %||% if (is_merf) "boruta" else if (is_scfh) "grid" else "step"
+  method <- match.arg(method, c("step", "boruta", "grid"))
+  if ((method == "grid") != is_scfh) {
+    cli::cli_abort(c(
+      if (is_scfh) "{.fn scfh_sae} models are tuned with {.code method = \"grid\"}." else
+        "{.code method = \"grid\"} is available for {.fn scfh_sae} models.",
+      "i" = "Covariate selection for {.fn scfh_sae} is not implemented."
+    ), call = NULL)
+  }
   if (method == "step" && is_merf) {
     cli::cli_abort(c(
       "{.code method = \"step\"} needs a likelihood and is available for {.fn pspline_sae} models.",
@@ -102,7 +153,9 @@ select_flexsae <- function(
   }
   criterion <- match.arg(criterion)
   direction <- match.arg(direction)
-  if (method == "step") {
+  if (method == "grid") {
+    .select_grid(object, criterion, K, phi, band, delta, trace)
+  } else if (method == "step") {
     .select_step(object, criterion, direction, scope, trace)
   } else {
     .select_boruta(object, max_runs, p_value, seed)
@@ -252,11 +305,108 @@ select_flexsae <- function(
   )
 }
 
+#' Grid search over K and phi for scfh_sae()
+#' @noRd
+.select_grid <- function(object, criterion, K, phi, band, delta, trace) {
+  K <- sort(unique(K))
+  phi <- sort(unique(phi))
+  if (!is.numeric(K) || length(K) == 0 || any(!is.finite(K) | K < 1 | K != round(K))) {
+    cli::cli_abort("{.arg K} must be positive whole numbers.", call = NULL)
+  }
+  if (!is.numeric(phi) || length(phi) == 0 || any(!is.finite(phi) | phi < 0)) {
+    cli::cli_abort("{.arg phi} must be non-negative numbers.", call = NULL)
+  }
+  if (!is.numeric(band) || length(band) != 2 || band[1] > band[2]) {
+    cli::cli_abort("{.arg band} must be two increasing numbers.", call = NULL)
+  }
+  in_band <- phi[phi >= band[1] & phi <= band[2]]
+  if (length(in_band) == 0) {
+    cli::cli_abort("No value of {.arg phi} lies in {.arg band} [{band[1]}, {band[2]}].", call = NULL)
+  }
+  if (!is.numeric(delta) || length(delta) != 1 || !is.finite(delta) || delta < 0) {
+    cli::cli_abort("{.arg delta} must be a single non-negative number.", call = NULL)
+  }
+  n_coef <- ncol(.design_matrix(object$formula, object$data))
+  m <- sum(object$df_est$sampled)
+  ic <- function(ll, k) switch(criterion, AIC = -2 * ll + 2 * k, BIC = -2 * ll + k * log(m), KIC = -2 * ll + 3 * k)
+
+  grid <- expand.grid(phi = phi, K = K)[, c("K", "phi")]
+  grid <- grid[!(grid$K == 1 & grid$phi != phi[1]), ]
+  fits <- vector("list", nrow(grid))
+  for (i in seq_len(nrow(grid))) {
+    fits[[i]] <- tryCatch(
+      suppressWarnings(.refit_scfh(object, grid$K[i], grid$phi[i], mse = "none")),
+      error = function(e) NULL
+    )
+  }
+  ok <- !vapply(fits, is.null, logical(1))
+  grid$loglik <- vapply(fits, function(f) if (is.null(f)) NA_real_ else f$loglik, numeric(1))
+  grid$admissible <- ok & vapply(fits, function(f) isTRUE(f$admissible), logical(1))
+  grid$criterion <- ic(grid$loglik, grid$K * (n_coef + 1))
+  grid$criterion[!grid$admissible] <- NA_real_
+  if (trace) print(grid, row.names = FALSE)
+
+  # (1) K: most frequent minimizer over the band; K = 1 is in every comparison
+  pick <- vapply(in_band, function(p) {
+    rows <- which((grid$phi == p | grid$K == 1) & grid$admissible)
+    if (length(rows) == 0) NA_integer_ else as.integer(grid$K[rows][which.min(grid$criterion[rows])])
+  }, integer(1))
+  if (all(is.na(pick))) {
+    cli::cli_abort("No admissible fit in {.arg band}; use smaller values of {.arg K}.", call = NULL)
+  }
+  freq <- table(pick)
+  K_hat <- min(as.integer(names(freq)[freq == max(freq)]))
+
+  # (2) phi: smallest penalty on the stability plateau at K_hat
+  grid$stability <- NA_real_
+  if (K_hat == 1) {
+    phi_hat <- phi[1]
+  } else {
+    rows <- which(grid$K == K_hat & grid$phi %in% in_band & grid$admissible)
+    s <- object$df_est$sampled
+    for (j in seq_along(rows)) {
+      nbr <- rows[abs(j - seq_along(rows)) == 1]
+      grid$stability[rows[j]] <- if (length(nbr) == 0) 1 else mean(vapply(nbr, function(r) {
+        .adjusted_rand(fits[[rows[j]]]$cluster$cluster[s], fits[[r]]$cluster$cluster[s])
+      }, numeric(1)))
+    }
+    st <- grid$stability[rows]
+    phi_hat <- min(grid$phi[rows][st >= max(st) - delta])
+  }
+  model <- .refit_scfh(object, K_hat, phi_hat, mse = object$mse_method)
+  structure(
+    list(model = model, formula = object$formula, selected = c(K = K_hat, phi = phi_hat),
+         method = "grid", grid = grid, criterion = criterion, band = band),
+    class = "flexsae_selection"
+  )
+}
+
+#' Refit an scfh_sae() model with another K and phi
+#' @noRd
+.refit_scfh <- function(object, K, phi, mse = object$mse_method) {
+  args <- list(
+    formula = object$formula, vardir = object$df_est$vardir, data = object$data, W = object$W,
+    K = K, phi = phi, method = object$method, n_start = object$n_start, maxit = object$maxit,
+    mse = mse, seed = object$seed, conf_level = object$conf_level
+  )
+  if (mse == "bootstrap") args$B <- object$B
+  fit <- do.call(scfh_sae, args)
+  fit$df_est$domain <- fit$cluster$domain <- object$df_est$domain
+  fit
+}
+
 #' @rdname select_flexsae
 #' @param x A `"flexsae_selection"` object.
 #' @param ... Not used.
 #' @export
 print.flexsae_selection <- function(x, ...) {
+  if (x$method == "grid") {
+    cat("Selection of K and phi (", x$criterion, ", stability plateau in [", x$band[1], ", ",
+        x$band[2], "])\n", sep = "")
+    cat("Selected: K = ", x$selected[["K"]], ", phi = ", format(x$selected[["phi"]]), "\n\n", sep = "")
+    print(x$grid, row.names = FALSE)
+    return(invisible(x))
+  }
   cat("Covariate selection (", x$method, ")\n", sep = "")
   cat("Selected model: ", deparse(x$formula), "\n", sep = "")
   if (x$method == "step") {

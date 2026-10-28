@@ -4,7 +4,7 @@ Aturan (sama dengan fastsae): tidak ada DOI/entri yang dikarang. Yang tidak dapa
 dikonfirmasi ke Crossref, situs penerbit, atau PDF resmi dicatat di sini dan **tidak
 dikutip** di kode, Rd, vignette, maupun laporan.
 
-Tanggal verifikasi: 28 Okt 2026. Entri terverifikasi ada di `references.bib` (69 entri; `wright2017ranger` ditambah 28 Okt 2026 dari Crossref + halaman JSS untuk halaman 1–17).
+Tanggal verifikasi: 28 Okt 2026. Entri terverifikasi ada di `references.bib` (77 entri; `wright2017ranger` ditambah 28 Okt 2026 dari Crossref + halaman JSS untuk halaman 1–17; 8 entri SC-FH ditambah 28 Okt 2026 dari Crossref/DataCite).
 Lingkup v0.1 kini **area-level** saja (lihat `PLAN.md`); rujukan unit-level tetap disimpan
 untuk rencana lanjutan.
 Cara verifikasi: `api.crossref.org/works/<doi>` untuk entri ber-DOI; PDF di
@@ -18,7 +18,7 @@ Cara verifikasi: `api.crossref.org/works/<doi>` untuk entri ber-DOI; PDF di
 | Giusti, Marchetti, Pratesi & Salvati (2012), "Semiparametric Fay-Herriot model using penalized splines", *J. Indian Soc. Agric. Statist.* 66(1):1–14 | **BELUM** | Hanya ditemukan sebagai sitasi sekunder (daftar pustaka Parker 2024 dan Parker & Eideh 2026, ResearchGate, Google Scholar). Tidak ada DOI di Crossref; halaman penerbit belum dibuka. Ini satu-satunya rujukan *frekuentis* untuk FH P-spline area-level, jadi perlu diverifikasi sebelum `fsae_fh_pspline()` dirilis. Langkah: cari di situs ISAS (isas.org.in) atau minta PDF ke penulis. |
 | Isaki, Tsay & Fuller (2000), "Estimation of census adjustment factors", *Survey Methodology* 26:31–42 | **BELUM** | Hanya sitasi sekunder (daftar pustaka Pfeffermann, Sikov & Tiller 2014). PDF StatCan belum dibuka. |
 | You, Rao & Dick (2004), *Statistics in Transition* 6:631–640 (benchmarking HB) | **BELUM** | Hanya sitasi sekunder (Ugarte dkk. 2009; Pfeffermann dkk. 2014). |
-| Messer & Schmid (2024), gradient boosting untuk data hierarkis di SAE, arXiv:2406.04256 | **BELUM** | Hanya sitasi sekunder di Parker & Eideh (2026), yang menyebutnya "preprint: not peer reviewed". Tidak dipakai. |
+| Messer & Schmid (2024/2026), "Gradient boosting for hierarchical data in small area estimation" | **Metadata terverifikasi 28 Okt 2026** | Koreksi: catatan sebelumnya menyebut hanya preprint arXiv:2406.04256. Kini terbit di *Statistics and Computing* 36(5), 2026, doi 10.1007/s11222-026-10970-1 (Crossref ✓, halaman/nomor artikel belum ada). Abstrak arXiv: MEGB **unit-level** (rata-rata area dari data unit, MSE bootstrap non-parametrik). Isi belum dibaca; belum masuk bib. |
 | Fisher, Rudin & Dominici (2019), model reliance / permutation importance, *JMLR* 20 | **BELUM** | Tidak dicek. Permutation importance cukup dirujuk ke Breiman (2001) dan Strobl dkk. (2008) yang sudah terverifikasi. |
 | Hajjem, Bellavance & Larocque (2011), mixed effects regression trees | **BELUM** | Tidak dicek; yang dipakai adalah Hajjem dkk. (2014, MERF), terverifikasi. |
 | Valdez dkk., algoritma EM khusus Fay-Herriot (rujukan [22] di Bukhari dkk. 2026) | **BELUM** | Hanya diketahui dari teks Bukhari dkk.; penulis lengkap, judul, dan tahun belum dicari. `merf_sae()` memakai REML FH dengan offset (Fay & Herriot 1979; spike S1), bukan EM ini. |
@@ -45,6 +45,11 @@ diimplementasikan sebelum teks lengkapnya dibaca dan nomor persamaannya dicatat
 | `wang2008small` | **Dibaca penuh 28 Okt 2026** (PDF StatCan 12-001-X, 9 hlm.): model (1)–(3), BLUP (4)–(6), PB (13), ITF (14), bentuk umum (15), YR (16)–(17), Teorema 1 (19), augmentasi (21)–(23), MSE §4, simulasi §5 (Tabel 1–4). | – |
 | `you2013performance`, `stefan2021small` | PDF: abstrak | Rumus MSPE |
 | `chambers2011bias`, `marchetti2012nonparametric` | Abstrak | Rumus |
+| `maranzano2026small` | **Preprint arXiv v1 (13 Agu 2026), dibaca 28 Okt 2026** (HTML): §2 pers. (1)–(9), §2.3 algoritma, §3.1 desain simulasi (Algoritma 1), §4.1–4.4 (inisialisasi, kluster kecil, adjusted REML, aturan pemilihan K/φ, bootstrap Algoritma 2), §5, Lampiran A (pers. 11, tiga update REML, AREML), Lampiran S1, S2.1–S2.2, S6. | **Belum ditelaah sejawat.** Rumus σ²_uk/σ²_e dari pangsa R² dan ρ_XY tidak tertulis; definisi "effective degrees of freedom" BIC tidak eksplisit (hanya K(P+2)); kode penulis tidak dirilis. `scfh_sae()` diberi label eksperimental. |
+| `li2010adjusted` | Metadata (Crossref). Fungsi objektif AREML (log A + ℓ_R(A)) diambil dari Lampiran A Maranzano dkk. (2026) dan dicocokkan dengan kode `emdi:::AMRL` (emdi 2.2.3). | Teks Li & Lahiri (2010) sendiri belum dibaca (paywall). |
+| `sugasawa2021spatially` | Abstrak (arXiv 2011.01493): K-means + penalti Potts, algoritma iteratif | Teks lengkap; tidak dipakai untuk persamaan (yang diikuti adalah Maranzano dkk. 2026). |
+| `besag1986statistical`, `hubert1985comparing` | Metadata (Crossref). ARI diimplementasikan dari rumus baku Hubert & Arabie dan dicek dengan contoh hitungan tangan. | Teks. |
+| `wang2026model`, `torkashvand2017clustering`, `yoshimori2014new` | Metadata (Crossref) | Isi; dicatat di PLAN sebagai alternatif/rencana lanjutan, tidak diimplementasikan. |
 
 ## 3. Koreksi terhadap prompt dan terhadap ingatan saya
 
@@ -74,6 +79,10 @@ DOI dari ingatan saya yang **salah** (diperbaiki lewat pencarian Crossref):
 - `krennmair2026analysing`: Crossref "issued" 2025, volume cetak 75(1) tahun 2026. Dipakai 2026.
 - `parker2026bartfh`: *advance article* JSSAM, belum ada volume/halaman. Kolom `pages` berisi
   nomor artikel `smaf050`. Perbarui setelah terbit cetak.
+- `maranzano2026small`: preprint arXiv (DataCite DOI 10.48550/arXiv.2608.13638), bukan artikel jurnal.
+- `wang2026model`: *advance article* JSSAM, belum ada volume/halaman.
+- Pellagatti, Masci, Ieva & Paganoni (2021), "Generalized mixed-effects random forest", *Statistical Analysis and Data Mining* 14(3):241–257, doi 10.1002/sam.11505 (Crossref ✓): GMERF untuk respons non-Gaussian (biner, cacah), data hierarkis unit-level; bukan paper SAE. Isi belum dibaca; belum masuk bib.
+- `besag1986statistical`: Crossref memberi halaman 259–279 (makalah); diskusi berlanjut sampai 302.
 - `molina2015sae`: Crossref hanya mencatat halaman awal (81); rentang 81–98 dari situs R Journal.
 - `steorts2013estimation`: Crossref tanpa volume/halaman; 23(2):749–767 dari situs Statistica Sinica.
 - Entri *Survey Methodology* (`wang2008small`, `you2013performance`, `stefan2021small`,
