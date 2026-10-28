@@ -222,3 +222,11 @@ test_that("two-stage bootstrap MSE: known targets make stage 1 a no-op in the re
   expect_true(all(is.finite(free$mse_benchmarked)))
   expect_output(print(free), "National")
 })
+
+test_that("summary() does not print an empty area table", {
+  d <- sim_nonlinear_area(D = 20, seed = 19)
+  fit <- pspline_sae(y ~ x1 + x2, "vardir", data = d, B = 5, seed = 1)
+  out <- utils::capture.output(summary(benchmark_flexsae(fit, target = 2.5)))
+  expect_false(any(grepl("0 rows|more areas", out)))
+  expect_true(any(grepl("Adjustment", out)))
+})

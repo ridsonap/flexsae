@@ -213,6 +213,11 @@ Fakta yang sudah dicek: `emdi::benchmark()` menyetel MSE ke NULL; `sae` tidak pu
 - **Hipotesis tercatat.** A: flexsae RMSE < FH linear; B: non-inferior, rasio RMSE median ≤ 1,05;
   C: lebih baik dan tidak memburuk karena noise. Tabel "skenario flexsae kalah" wajib.
 
+- **Pelaksanaan (fase 5, 28 Okt 2026).** Hasil dan penyimpangan (R tetap 300/200, B = 100, metode dan ukuran yang
+  belum dilaporkan) di `DISCREPANCIES.md` cek S9. Ringkas: hipotesis B terpenuhi untuk `pspline_sae`, tidak untuk
+  `merf_sae`; hipotesis A terpenuhi kecuali A3, D = 30 dan (merf) rasio 0,25. Sisa ukuran (skor interval, RSS,
+  σ²ᵥ, benchmark, TPR/FPR seleksi) dan `scfh_sae`/`boost_sae` (S12) masuk fase lanjutan.
+
 ### 3.3 Uji unit dan regresi
 
 Satu file test per modul; semua kombinasi argumen; kombinasi tak didukung → `cli_abort()` di awal;
@@ -390,9 +395,9 @@ rmarkdown, covr`. GPL (>= 3).
 | 3a ✅ | `benchmark_flexsae()` post-hoc, MSE terbenchmark bootstrap, E4–E6, tes properti | idem |
 | 3b ✅ | self-benchmark (WFQ pers. 23) untuk `pspline_sae`/`merf_sae` | idem |
 | 4 ✅ | `select_flexsae()` (step pspline, Boruta merf), importance, partial/ICE, `autoplot` | idem; validasi seleksi (TPR/FPR) dipindah ke fase 5 |
-| 5 | Simulasi ADEMP (paket terinstal), vignette, pkgdown | tabel dengan MCSE, situs terbangun |
-| 6 | `scfh_sae()` (SC-FH, eksperimental) + `select_flexsae(method = "grid")` + pilot lattice | test hijau; S10 kasus khusus vs sae/emdi; pilot S11 |
-| 6b | `boost_sae()` (XGBoost, cross-fitting) + mesin learner bersama merf | test hijau; merf identik dengan fixture pra-refactor; S12 simulasi |
+| 5 ✅ | Simulasi ADEMP (paket terinstal), vignette, pkgdown | tabel dengan MCSE, situs terbangun; hasil S9 |
+| 6 ✅ | `scfh_sae()` (SC-FH, eksperimental) + `select_flexsae(method = "grid")` + pilot lattice | test hijau; S10 kasus khusus vs sae/emdi; pilot S11 |
+| 6b ✅ | `boost_sae()` (XGBoost, cross-fitting) + mesin learner bersama merf | test hijau; merf identik dengan fixture pra-refactor; S12 simulasi (titik) |
 | 7 | Rencana lanjutan §2.6 | – |
 
 Setiap fase: `devtools::document()` → `devtools::test()` → `R CMD check --as-cran`; hasil dilaporkan

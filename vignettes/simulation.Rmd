@@ -1,0 +1,225 @@
+---
+title: "Simulation study: flexsae against the linear Fay-Herriot model"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Simulation study: flexsae against the linear Fay-Herriot model}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", echo = FALSE)
+sim <- readRDS(system.file("extdata", "simulation.rds", package = "flexsae"))
+fmt <- function(x, d = 3) formatC(x, format = "f", digits = d)
+pt <- sim$point[sim$point$areas == "sampled", ]
+rt <- function(sc, m) fmt(pt$ratio_fh[pt$scenario == sc & pt$method == m])
+rng <- function(scs, m) {
+  x <- pt$ratio_fh[pt$scenario %in% scs & pt$method == m]
+  paste(fmt(min(x)), "to", fmt(max(x)))
+}
+ms <- function(m, col, d = 3) {
+  x <- sim$mse[sim$mse$method == m, col]
+  paste(fmt(min(x), d), "to", fmt(max(x), d))
+}
+b_scs <- grep("^B", sim$scenarios$scenario, value = TRUE)
+```
+
+This article reports a simulation study of the models of flexsae against the
+linear Fay-Herriot model, following the ADEMP structure (aims, data-generating
+mechanisms, estimands, methods, performance measures). The results are
+precomputed by `benchmarks/simulation/run.R` (flexsae `r sim$settings$flexsae`,
+`r sim$settings$R_version`) and summarised by
+`benchmarks/update_benchmark_docs.R`; every number has its Monte Carlo
+standard error (MCSE).
+
+## Design
+
+**Aims.** Accuracy of the area estimates against the linear Fay-Herriot model
+when the covariate effects are linear or not; quality of the bootstrap MSE and
+of the intervals; computing time.
+
+**Data-generating mechanisms.** Area-level model
+\(\theta_d = f(x_d) + v_d\), \(y_d = \theta_d + e_d\), \(e_d \sim N(0, \psi_d)\),
+with \(\sigma^2_v = 1\) and \(\psi_d = \bar\psi\,U(0.5, 1.5)\),
+\(\bar\psi = \sigma^2_v/\text{ratio}\). The covariates are drawn once per
+scenario (fixed design); \(v_d\) and \(e_d\) are redrawn in every replicate.
+
+| Shape | \(f(x)\) | Covariates in the models |
+|---|---|---|
+| B (linear) | \(1 + x_1 + 0.5x_2\) | \(x_1, x_2\) |
+| A1 (quadratic) | \(1 + 0.8x_1^2 + 0.5x_2\) | \(x_1, x_2\) |
+| A2 (sine) | \(1 + 1.5\sin(1.5x_1) + 0.5x_2\) | \(x_1, x_2\) |
+| A3 (threshold) | \(1 + 1.5\,\mathbb{1}(x_1 > 0) + 0.5x_2\) | \(x_1, x_2\) |
+| A4 (interaction) | \(1 + 0.8x_1x_2 + 0.5x_2\) | \(x_1, x_2\) |
+| A5 (Bukhari et al., 2026, eq. 20) | \(x_1^2 + 2x_2^3 + 3\log(\lvert x_3\rvert + 1) + 4\log\lvert x_4\rvert\) | \(x_1, \dots, x_4\) |
+| C (mixed) | \(1 + 1.5\sin(1.5x_1) + 0.8x_2^2 + 0.5x_3\) | \(x_1, \dots, x_8\): five noise covariates, two correlated with \(x_1\) and \(x_3\) |
+
+\(x \sim U(-2, 2)\), except A5 (\(U(0.5, 2)\), our choice: the paper's text does
+not give the covariate distribution). The base setting has \(D = 100\) areas
+and ratio 1. For B and A2 one factor at a time is varied: \(D \in \{30, 50,
+300\}\), ratio \(\in \{0.25, 4\}\), \(\psi_d\) in five groups
+(\(\bar\psi \times \{0.1, 0.3, 0.8, 1.3, 2.5\}\)), \(v_d\) from a scaled \(t_3\),
+and 10% unsampled areas; A2 also with half the non-linearity
+(\(\lambda = 0.5\)). All shapes except A5 are our own designs.
+
+**Estimand.** \(\theta_d\) for every area.
+
+**Methods.** Direct estimator; linear Fay-Herriot model, REML, from
+`sae::eblupFH()` (with \(x^\prime\hat\beta\) for unsampled areas);
+`pspline_sae()` with `s(x, k = 8)` for every covariate (`k = 5` for
+\(D \le 50\)); `merf_sae()` with `variant = "replace"` and `"correct"`
+(algorithm `"fhrf"`, 500 trees) and the experimental `algorithm = "merf"`;
+the experimental `boost_sae()` with both variants and its defaults (one-pass,
+`nrounds` by cross-validation; point estimates only, run separately on the
+same replicates);
+BART-FH from `nlfh::fit_fh_bart()` with its defaults (sampled areas only).
+
+**Performance.** For each replicate, the mean over the areas of the squared
+error; its mean over the replicates, and the ratio to the linear Fay-Herriot
+model (paired replicates, delta-method MCSE). MSE study (five scenarios): the
+relative bias of the MSE estimator per area, coverage and width of the 95%
+intervals. Bootstrap with \(B = `r sim$settings$B`\).
+
+**Replicates.** `r sim$settings$R_point` per scenario for the point
+estimates and `r sim$settings$R_mse` for the MSE study; one L'Ecuyer-CMRG
+stream per replicate.
+
+## Summary
+
+- **Linear truth (scenarios B).** `pspline_sae()` is close to the linear
+  Fay-Herriot model (ratio `r rng(b_scs, "pspline")`), because the smooths
+  shrink to straight lines. The random forest of `merf_sae()` costs accuracy
+  when the truth is linear (`"correct"`: `r rng(b_scs, "merf_correct")`;
+  `"replace"`: `r rng(b_scs, "merf_replace")`), most with large sampling
+  variances (ratio 0.25) and few areas. Prefer the linear model or
+  `pspline_sae()` when there is no sign of non-linearity.
+- **Non-linear truth.** `pspline_sae()` gains most for smooth additive
+  effects (quadratic `r rt("A1", "pspline")`, sine `r rt("A2", "pspline")`,
+  mixed `r rt("C", "pspline")`, Bukhari et al.'s function
+  `r rt("A5", "pspline")`). `merf_sae()` gains less (sine
+  `r rt("A2", "merf_replace")`) but more for the interaction A4, which an
+  additive spline model cannot represent (`r rt("A4", "merf_replace")` against
+  `r rt("A4", "pspline")`). Gains are below 1% for the step function A3
+  (`r rt("A3", "pspline")` and `r rt("A3", "merf_replace")`) and absent with
+  \(D = 30\).
+- **`variant = "replace"` against `"correct"`.** On the function of Bukhari
+  et al. (A5) `"replace"` is worse than the linear model
+  (`r rt("A5", "merf_replace")`) and `"correct"` better
+  (`r rt("A5", "merf_correct")`). A likely reason, not checked: with our
+  covariate design (the paper does not give its own) the terms are close to
+  linear, which the linear part of `"correct"` captures and a forest
+  approximates with steps.
+- **Experimental `boost_sae()`.** With `variant = "correct"` it loses at
+  most a few percent to the linear model (scenarios B: `r rng(b_scs, "boost_correct")`), but
+  gains little when the truth is non-linear (sine `r rt("A2", "boost_correct")`,
+  mixed `r rt("C", "boost_correct")`). With `"replace"` it behaves like the
+  random forest (B: `r rng(b_scs, "boost_replace")`).
+- **Experimental `algorithm = "merf"`.** Better than `"fhrf"` for A1 and A4,
+  worse in most other scenarios; it stays experimental.
+- **MSE.** The bootstrap MSE of `pspline_sae()` is slightly too small (median
+  relative bias `r ms("pspline", "rb_median")`) with coverage slightly below
+  95% (`r ms("pspline", "coverage")`); that of `merf_sae()` is conservative
+  when the truth is non-linear (median relative bias up to
+  `r fmt(max(sim$mse$rb_median[sim$mse$method == "merf_replace"]))`, coverage
+  `r ms("merf_replace", "coverage")`).
+- **Cost.** With the bootstrap, `pspline_sae()` is much slower than
+  `merf_sae()` (last table), because every replicate refits the mixed
+  model with mgcv.
+
+## Accuracy
+
+Ratio of the mean squared error to the linear Fay-Herriot model (below 1:
+more accurate), sampled areas, with MCSE in parentheses.
+
+```{r ratio-table}
+p <- sim$point[sim$point$areas == "sampled", ]
+methods <- c("pspline", "merf_replace", "merf_correct", "merf_iterative", "boost_replace", "boost_correct",
+             "bart_fh", "direct")
+labels <- c("pspline", "merf replace", "merf correct", "merf iterative", "boost replace", "boost correct",
+            "BART-FH", "direct")
+tab <- data.frame(scenario = unique(p$scenario))
+for (i in seq_along(methods)) {
+  m <- p[p$method == methods[i], ]
+  tab[[labels[i]]] <- ifelse(is.na(match(tab$scenario, m$scenario)), "",
+    paste0(fmt(m$ratio_fh[match(tab$scenario, m$scenario)]), " (",
+           fmt(m$ratio_mcse[match(tab$scenario, m$scenario)]), ")"))
+}
+ord <- match(sim$scenarios$scenario, tab$scenario)
+tab <- tab[ord[!is.na(ord)], ]
+knitr::kable(tab, row.names = FALSE)
+```
+
+### Where flexsae is not better
+
+Scenarios in which a flexsae model has a mean squared error above the linear
+Fay-Herriot model by more than two MCSE:
+
+```{r losses}
+fl <- p[p$method %in% c("pspline", "merf_replace", "merf_correct", "merf_iterative", "boost_replace",
+                        "boost_correct"), ]
+loss <- fl[fl$ratio_fh - 2 * fl$ratio_mcse > 1, c("scenario", "method", "ratio_fh", "ratio_mcse")]
+loss$ratio_fh <- fmt(loss$ratio_fh)
+loss$ratio_mcse <- fmt(loss$ratio_mcse)
+if (nrow(loss) == 0) cat("None.\n") else knitr::kable(loss, row.names = FALSE)
+```
+
+### Unsampled areas
+
+```{r unsampled}
+u <- sim$point[sim$point$areas == "unsampled", c("scenario", "method", "ratio_fh", "ratio_mcse")]
+u$ratio_fh <- fmt(u$ratio_fh)
+u$ratio_mcse <- fmt(u$ratio_mcse)
+knitr::kable(u, row.names = FALSE)
+```
+
+## MSE estimation and intervals
+
+```{r mse-table}
+m <- sim$mse
+out <- data.frame(
+  scenario = m$scenario, method = m$method,
+  `RB median` = fmt(m$rb_median), `RB P10-P90` = paste0(fmt(m$rb_p10, 2), " to ", fmt(m$rb_p90, 2)),
+  coverage = paste0(fmt(m$coverage), " (", fmt(m$coverage_mcse), ")"),
+  width = fmt(m$width), check.names = FALSE
+)
+knitr::kable(out, row.names = FALSE)
+```
+
+RB is the relative bias of the MSE estimator of an area,
+\((\overline{\widehat{\mathrm{mse}}}_d - \mathrm{MSE}_d)/\mathrm{MSE}_d\), with
+\(\mathrm{MSE}_d\) the Monte Carlo MSE. The linear Fay-Herriot MSE is the
+Prasad-Rao estimator (`sae::mseFH()`); BART-FH intervals are posterior
+quantiles.
+
+## Computing time
+
+Mean seconds per fit for scenario B: point estimates with \(D = 100\) and
+\(D = 300\), and with the bootstrap MSE (\(B = `r sim$settings$B`\); Prasad-Rao for
+the linear model, posterior sampling for BART-FH). Ten fits ran in parallel,
+so single fits are faster. In this run the times of the linear model and of
+BART-FH include loading the packages sae and nlfh in every replicate (each
+replicate ran in a fresh process); a single `sae::eblupFH()` fit with
+\(D = 100\) takes milliseconds.
+
+```{r time}
+tt <- data.frame(method = unique(p$method[p$scenario == "B"]))
+pick <- function(d, sc) {
+  x <- d$time[match(paste(sc, tt$method), paste(d$scenario, d$method))]
+  ifelse(is.na(x), "", fmt(x, 2))
+}
+tt$`D = 100` <- pick(p, "B")
+tt$`D = 300` <- pick(p, "B_D300")
+tt$`D = 100, with MSE` <- pick(sim$mse, "B")
+knitr::kable(tt, row.names = FALSE)
+```
+
+## Reference
+
+Bukhari, A. S., Notodiputro, K. A., Indahwati and Fitrianto, A. (2026). A
+random forest-augmented Fay-Herriot model for nonlinear area-level small area
+estimation. *Ingénierie des Systèmes d'Information*, 31(6), 1811-1823.
+https://doi.org/10.18280/isi.310604
+
+Morris, T. P., White, I. R. and Crowther, M. J. (2019). Using simulation
+studies to evaluate statistical methods. *Statistics in Medicine*, 38(11),
+2074-2102. https://doi.org/10.1002/sim.8086

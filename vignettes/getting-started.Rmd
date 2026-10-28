@@ -1,0 +1,145 @@
+---
+title: "Getting started with flexsae"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting started with flexsae}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.width = 7, fig.height = 4)
+```
+
+flexsae estimates small area parameters from **area-level** data (one direct
+estimate per area with a known sampling variance) when the covariates act
+non-linearly. It extends the Fay-Herriot model in two ways:
+
+* `pspline_sae()` replaces linear terms by penalized splines (a semiparametric
+  Fay-Herriot model fitted by REML or ML with 'mgcv');
+* `merf_sae()` replaces or corrects the linear predictor with a random forest
+  (Bukhari et al., 2026).
+
+Both predict every area, give a parametric bootstrap MSE, and share one result
+format. Without smooth terms `pspline_sae()` is the linear Fay-Herriot model
+and agrees with `sae::eblupFH()`.
+
+## Data
+
+Each row is an area with a direct estimate `y`, its sampling variance
+`vardir` and covariates. Areas with a missing `y` are unsampled and get a
+synthetic prediction.
+
+```{r data}
+library(flexsae)
+set.seed(1)
+D <- 100
+dat <- data.frame(
+  area = sprintf("A%03d", 1:D),
+  x1 = runif(D, -2, 2), x2 = rnorm(D), x3 = rnorm(D),
+  N = rpois(D, 2000)
+)
+dat$vardir <- runif(D, 0.2, 0.6)
+dat$theta <- 5 + 1.5 * sin(1.5 * dat$x1) + 0.5 * dat$x2 + rnorm(D, sd = 0.6)
+dat$y <- dat$theta + rnorm(D, sd = sqrt(dat$vardir))
+dat$y[c(7, 55)] <- NA # unsampled areas
+```
+
+The true area means `theta` are kept only to show the accuracy below; with
+real data they are unknown.
+
+## Spline Fay-Herriot model
+
+Smooth terms use 'mgcv' syntax; the area random effect is added internally.
+
+```{r pspline}
+fit_ps <- pspline_sae(y ~ s(x1, k = 8) + x2 + x3, vardir = "vardir", domain = "area",
+                      data = dat, B = 50, seed = 123)
+fit_ps
+head(fit_ps$df_est)
+```
+
+`df_est` has the same columns for every model: the direct estimate, the model
+estimate `est`, its parts (`synthetic` fixed part and `random_effect`), the
+shrinkage factor `gamma`, the bootstrap `mse`, `rse` (%) and the interval.
+`B = 50` keeps this vignette fast; use the default `B = 200` or more in
+practice.
+
+## Random forest Fay-Herriot model
+
+```{r merf}
+fit_rf <- merf_sae(y ~ x1 + x2 + x3, vardir = "vardir", domain = "area", data = dat,
+                   variant = "replace", num.trees = 300, B = 50, seed = 123)
+fit_rf
+```
+
+`variant = "correct"` keeps the linear predictor and lets the forest model what
+it misses. `algorithm = "merf"` (experimental) re-estimates the random effect
+variance with the forest as an offset.
+
+## Comparison with the linear Fay-Herriot model
+
+```{r compare}
+fit_lin <- pspline_sae(y ~ x1 + x2 + x3, vardir = "vardir", data = dat, mse = "none")
+rmse <- function(fit) sqrt(mean((fit$df_est$est - dat$theta)^2))
+c(direct = sqrt(mean((dat$y - dat$theta)^2, na.rm = TRUE)),
+  linear_fh = rmse(fit_lin), pspline = rmse(fit_ps), merf = rmse(fit_rf))
+```
+
+With a sine-shaped effect both flexible models are more accurate than the
+linear model here. When the effects are linear they are not: see the
+simulation article for the settings where flexsae loses.
+
+## Plots
+
+```{r plots}
+autoplot(fit_ps)
+autoplot(fit_ps, type = "partial")
+autoplot(fit_rf, type = "importance")
+autoplot(fit_ps, type = "rse")
+```
+
+Other types: `"scatter"`, `"residuals"`, `"qq"` and `"caterpillar"`.
+`partial_flexsae()` and `importance_flexsae()` return the numbers behind the
+plots.
+
+## Covariate selection
+
+For the spline model, a stepwise search on BIC (default), AIC or KIC from the
+marginal ML likelihood; for linear terms it equals `fastsae::step_sae()`.
+
+```{r select}
+sel <- select_flexsae(fit_ps, trace = FALSE)
+sel
+```
+
+For `merf_sae()` models, `select_flexsae()` uses the Boruta algorithm
+(package 'Boruta').
+
+## Consistency with aggregate targets
+
+`benchmark_flexsae()` adjusts the estimates so that their weighted aggregate
+equals a target, and gives the MSE after benchmarking from the model bootstrap.
+Alternatively, `bench_weight` makes the model itself agree with the weighted
+aggregate of the direct estimates. See the benchmarking article.
+
+```{r bench}
+bm <- benchmark_flexsae(fit_ps, target = "direct", weight = "N", areas = "sampled",
+                        method = "ratio")
+summary(bm)
+```
+
+## References
+
+Bukhari, A. S., Notodiputro, K. A., Indahwati and Fitrianto, A. (2026). A
+random forest-augmented Fay-Herriot model for nonlinear area-level small area
+estimation. *Ingénierie des Systèmes d'Information*, 31(6), 1811-1823.
+https://doi.org/10.18280/isi.310604
+
+Fay, R. E. and Herriot, R. A. (1979). Estimates of income for small places: an
+application of James-Stein procedures to census data. *Journal of the American
+Statistical Association*, 74(366a), 269-277.
+https://doi.org/10.1080/01621459.1979.10482505
+
+Wood, S. N. (2017). *Generalized Additive Models: An Introduction with R* (2nd
+ed.). Chapman and Hall/CRC. https://doi.org/10.1201/9781315370279

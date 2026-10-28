@@ -587,9 +587,11 @@ print.flexsae_benchmark <- function(x, n = 6, ...) {
   if (identical(attr(x, "mse_method"), "bootstrap")) {
     cat(sprintf("\nMSE: bootstrap, %d replicates (%d failed)\n", attr(x, "B") - attr(x, "n_failed"), attr(x, "n_failed")))
   }
-  cat("\n")
-  print(utils::head(as.data.frame(x), n), row.names = FALSE, digits = 4)
-  if (nrow(x) > n) cat("... and", nrow(x) - n, "more areas\n")
+  if (n > 0) {
+    cat("\n")
+    print(utils::head(as.data.frame(x), n), row.names = FALSE, digits = 4)
+    if (nrow(x) > n) cat("... and", nrow(x) - n, "more areas\n")
+  }
   invisible(x)
 }
 
@@ -597,7 +599,7 @@ print.flexsae_benchmark <- function(x, n = 6, ...) {
 #' @export
 summary.flexsae_benchmark <- function(object, ...) {
   print(object, n = 0)
-  cat("Adjustment:\n")
+  cat("\nAdjustment:\n")
   print(summary(object$adjustment))
   cat("\nRelative adjustment (%):\n")
   print(summary(object$rel_adjustment_pct))

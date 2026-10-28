@@ -1,0 +1,57 @@
+title: flexsae
+url: https://ridsonap.is-a.dev/flexsae/
+
+template:
+  bootstrap: 5
+  bootswatch: flatly
+  light-switch: true
+  bslib:
+    primary: "#1D6A5C"
+
+navbar:
+  structure:
+    left:  [intro, articles, reference, news]
+    right: [search, github, lightswitch]
+  components:
+    intro:
+      text: Get Started
+      href: articles/getting-started.html
+    articles:
+      text: Articles
+      menu:
+        - text: "Getting started with flexsae"
+          href: articles/getting-started.html
+        - text: "Benchmarking area estimates"
+          href: articles/benchmarking.html
+        - text: "--------------------"
+        - text: "Simulation study: flexsae against the linear Fay-Herriot model"
+          href: articles/simulation.html
+    github:
+      icon: fab fa-github fa-lg
+      href: https://github.com/ridsonap/flexsae
+      aria-label: GitHub
+
+reference:
+  - title: Models
+    contents:
+      - pspline_sae
+      - merf_sae
+      - scfh_sae
+      - boost_sae
+      - flexsae-methods
+  - title: Benchmarking
+    contents:
+      - benchmark_flexsae
+  - title: Covariates and interpretation
+    contents:
+      - select_flexsae
+      - importance_flexsae
+      - partial_flexsae
+  - title: Plots
+    contents:
+      - autoplot.flexsae
+      - autoplot.flexsae_benchmark
+      - reexports
+  - title: Package
+    contents:
+      - flexsae-package

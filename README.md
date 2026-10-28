@@ -23,9 +23,11 @@ Available:
 - `merf_sae()`: Fay-Herriot model with a random forest for the fixed
   part (replacing or correcting the linear predictor), with parametric
   bootstrap MSE.
+
 - `boost_sae()` (experimental): Fay-Herriot model with gradient boosting
-  (XGBoost) for the fixed part, with cross-fitted predictions and parametric
-  bootstrap MSE.
+  (XGBoost) for the fixed part, with cross-fitted predictions and
+  parametric bootstrap MSE.
+
 - `scfh_sae()` (experimental): spatially clustered Fay-Herriot model,
   where neighbouring areas tend to share a regime with its own
   coefficients, with a bootstrap MSE that reruns the clustering.
@@ -37,8 +39,9 @@ Available:
 - `select_flexsae()`, `importance_flexsae()`, `partial_flexsae()` and
   `autoplot()` methods.
 
-Planned for the first release: simulation studies, vignettes and a
-pkgdown site.
+Articles: getting started, benchmarking, and a simulation study against
+the linear Fay-Herriot model that also reports where the flexible models
+are not better (`vignette(package = "flexsae")`).
 
 Every method is checked against the linear Fay-Herriot model of the
 `sae`, `emdi` and `fastsae` packages, and in simulation studies that
