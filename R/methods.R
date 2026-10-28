@@ -2,8 +2,28 @@
   switch(model,
     pspline_sae = "Semiparametric Fay-Herriot model with penalized splines",
     merf_sae = "Fay-Herriot model with a random forest",
+    scfh_sae = "Spatially clustered Fay-Herriot model (experimental)",
     model
   )
+}
+
+# Random effect variance of each area (one per cluster in scfh_sae())
+.area_sigma2 <- function(object) {
+  if (is.null(object$cluster)) object$sigma2_v else object$sigma2_v[object$cluster$cluster]
+}
+
+# Cluster lines of print() and summary() for scfh_sae()
+.print_clusters <- function(x, digits) {
+  cat("Clusters: K = ", x$K, ", phi = ", format(x$phi), " (", x$iterations, " iterations)
+", sep = "")
+  tab <- data.frame(
+    cluster = seq_len(x$K),
+    sampled = x$size,
+    all = tabulate(x$cluster$cluster, nbins = x$K),
+    sigma2_v = signif(x$sigma2_v, digits)
+  )
+  print(tab, row.names = FALSE)
+  if (!isTRUE(x$admissible)) cat("Warning: a cluster has too few sampled areas (not admissible).\n")
 }
 
 .mse_label <- function(object) {
@@ -22,7 +42,8 @@
 #' @param digits Number of significant digits to print.
 #' @param type For `residuals()`: `"raw"` gives \eqn{y_d - \hat\theta_d};
 #'   `"pearson"` gives the standardized marginal residuals
-#'   \eqn{(y_d - \hat m(x_d)) / \sqrt{\hat\sigma^2_v + \psi_d}}. Unsampled areas are `NA`.
+#'   \eqn{(y_d - \hat m(x_d)) / \sqrt{\hat\sigma^2_v + \psi_d}} (with the
+#'   variance of the area's cluster for [scfh_sae()]). Unsampled areas are `NA`.
 #' @param ... Not used.
 #'
 #' @return `print()` returns `x` invisibly. `summary()` returns an object of
@@ -44,7 +65,11 @@ print.flexsae <- function(x, digits = max(3L, getOption("digits") - 3L), ...) {
   }
   cat("Method: ", x$method, "\n", sep = "")
   cat("Areas: ", nrow(df), " (", sum(df$sampled), " sampled, ", sum(!df$sampled), " unsampled)\n", sep = "")
-  cat("Area random effect variance: ", format(x$sigma2_v, digits = digits), "\n", sep = "")
+  if (!is.null(x$cluster)) {
+    .print_clusters(x, digits)
+  } else {
+    cat("Area random effect variance: ", format(x$sigma2_v, digits = digits), "\n", sep = "")
+  }
   if (!isTRUE(x$convergence)) cat("Warning: the fit did not fully converge.\n")
   if (!is.null(x$coefficients) && nrow(x$coefficients) > 0) {
     cat("\nParametric coefficients:\n")
@@ -75,6 +100,7 @@ summary.flexsae <- function(object, ...) {
       n_areas = nrow(df),
       n_sampled = sum(df$sampled),
       sigma2_v = object$sigma2_v,
+      clusters = if (!is.null(object$cluster)) object[c("K", "phi", "iterations", "size", "cluster", "sigma2_v", "admissible")],
       coefficients = object$coefficients,
       smooth = object$smooth,
       quantiles = quant,
@@ -90,7 +116,11 @@ summary.flexsae <- function(object, ...) {
 print.summary.flexsae <- function(x, digits = max(3L, getOption("digits") - 3L), ...) {
   cat(.model_label(x$model), " (", x$method, ")\n", sep = "")
   cat("Areas: ", x$n_areas, " (", x$n_sampled, " sampled)\n", sep = "")
-  cat("Area random effect variance: ", format(x$sigma2_v, digits = digits), "\n", sep = "")
+  if (!is.null(x$clusters)) {
+    .print_clusters(x$clusters, digits)
+  } else {
+    cat("Area random effect variance: ", format(x$sigma2_v, digits = digits), "\n", sep = "")
+  }
   if (!isTRUE(x$convergence)) cat("Warning: the fit did not fully converge.\n")
   if (nrow(x$coefficients) > 0) {
     cat("\nParametric coefficients:\n")
@@ -126,7 +156,7 @@ residuals.flexsae <- function(object, type = c("raw", "pearson"), ...) {
   df <- object$df_est
   res <- switch(type,
     raw = df$direct - df$est,
-    pearson = (df$direct - df$synthetic) / sqrt(object$sigma2_v + df$vardir)
+    pearson = (df$direct - df$synthetic) / sqrt(.area_sigma2(object) + df$vardir)
   )
   stats::setNames(res, df$domain)
 }

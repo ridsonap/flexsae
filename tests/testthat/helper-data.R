@@ -15,3 +15,18 @@ milk_data <- function() {
   milk$var <- milk$SD^2
   milk
 }
+
+# Two spatial regimes on an n_side x n_side lattice (left and right halves):
+# theta_d = b0_k + b1_k x_d + u_d, rook adjacency in W.
+sim_regimes <- function(n_side = 10, b0 = c(2, 6), b1 = c(2, -1), sigma_u = 0.5, seed = 1) {
+  withr::with_seed(seed, {
+    g <- expand.grid(col = seq_len(n_side), row = seq_len(n_side))
+    D <- nrow(g)
+    regime <- ifelse(g$col <= n_side / 2, 1L, 2L)
+    dat <- data.frame(area = paste0("A", seq_len(D)), x = rnorm(D, sd = 2), regime = regime)
+    dat$vardir <- runif(D, 0.3, 0.6)
+    dat$theta <- b0[regime] + b1[regime] * dat$x + rnorm(D, sd = sigma_u)
+    dat$y <- dat$theta + rnorm(D, sd = sqrt(dat$vardir))
+    list(data = dat, W = 1 * (as.matrix(stats::dist(g)) == 1))
+  })
+}

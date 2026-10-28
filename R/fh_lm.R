@@ -5,6 +5,9 @@
 # REML log-likelihood
 #   ML:   -1/2 [sum log(sigma2_v + vardir_d) + r' V^-1 r]
 #   REML: ML - 1/2 log |X' V^-1 X|
+#   AREML: REML + log(sigma2_v), the adjusted REML of Li and Lahiri (2010) as
+#     written in Maranzano et al. (2026, app. A) and emdi's "amrl"; its
+#     maximum is strictly positive
 # over [0, upper]. A grid locates the maximum and optimize() refines it, with a
 # tolerance far below the one of emdi (technical-report/DISCREPANCIES.md, S2).
 # Without fixed effects REML equals ML. This replaces mgcv here because a gam
@@ -16,9 +19,10 @@
 #' @param y Response (offset already subtracted), sampled areas.
 #' @param X Design matrix of the sampled areas; may have no columns.
 #' @param vardir Sampling variances of the sampled areas.
-#' @param method "REML" or "ML".
+#' @param method "REML", "ML" or "AREML".
 #' @return List with `sigma2_v`, `beta`, `vcov`, `coefficients` (table),
-#'   `method` and `converged`.
+#'   `loglik` (marginal Gaussian log-likelihood at the estimates, constant
+#'   included), `method` and `converged`.
 #' @noRd
 .fit_fh_lm <- function(y, X, vardir, method) {
   p <- ncol(X)
@@ -41,9 +45,10 @@
   loglik <- function(s2) {
     g <- gls(s2)
     ll <- -0.5 * (sum(log(s2 + vardir)) + sum(g$w * g$r^2))
-    if (method == "REML" && p > 0) {
+    if (method != "ML" && p > 0) {
       ll <- ll - 0.5 * as.numeric(determinant(g$A, logarithm = TRUE)$modulus)
     }
+    if (method == "AREML") ll <- ll + log(s2)
     ll
   }
 
@@ -69,6 +74,7 @@
   }
 
   g <- gls(s2)
+  full_ll <- -0.5 * (length(y) * log(2 * pi) + sum(log(s2 + vardir)) + sum(g$w * g$r^2))
   vcov <- if (p > 0) solve(g$A) else matrix(numeric(0), 0, 0)
   se <- sqrt(diag(vcov))
   z <- g$beta / se
@@ -82,7 +88,7 @@
   )
   names(g$beta) <- colnames(X)
   list(sigma2_v = s2, beta = g$beta, vcov = vcov, coefficients = coefficients,
-       method = method, converged = converged)
+       loglik = full_ll, method = method, converged = converged)
 }
 
 #' Design matrix of the linear terms of a formula for all areas

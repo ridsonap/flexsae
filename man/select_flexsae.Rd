@@ -14,19 +14,25 @@ select_flexsae(
   trace = TRUE,
   max_runs = 100,
   p_value = 0.01,
-  seed = NULL
+  seed = NULL,
+  K = 1:4,
+  phi = seq(0, 1, by = 0.125),
+  band = c(0.25, 1),
+  delta = 0.05
 )
 
 \method{print}{flexsae_selection}(x, ...)
 }
 \arguments{
-\item{object}{A model from \code{\link[=pspline_sae]{pspline_sae()}} or \code{\link[=merf_sae]{merf_sae()}}.}
+\item{object}{A model from \code{\link[=pspline_sae]{pspline_sae()}}, \code{\link[=merf_sae]{merf_sae()}} or \code{\link[=scfh_sae]{scfh_sae()}}.}
 
 \item{method}{\code{"step"} (stepwise search on an information criterion;
-\code{pspline_sae()} models) or \code{"boruta"} (all-relevant selection with the
-Boruta algorithm; \code{merf_sae()} models). The default depends on the model.}
+\code{pspline_sae()} models), \code{"boruta"} (all-relevant selection with the
+Boruta algorithm; \code{merf_sae()} models) or \code{"grid"} (\eqn{K} and
+\eqn{\phi}; \code{scfh_sae()} models). The default depends on the model.}
 
-\item{criterion}{For \code{"step"}: \code{"BIC"} (default), \code{"AIC"} or \code{"KIC"}.}
+\item{criterion}{For \code{"step"} and \code{"grid"}: \code{"BIC"} (default), \code{"AIC"} or
+\code{"KIC"}.}
 
 \item{direction}{For \code{"step"}: \code{"backward"} (default), \code{"both"} or
 \code{"forward"}.}
@@ -43,18 +49,29 @@ search starts from the model of \code{object}.}
 \item{seed}{For \code{"boruta"}: optional seed; the random number stream of the
 session is restored afterwards.}
 
+\item{K, phi}{For \code{"grid"}: candidate numbers of clusters and spatial
+penalties.}
+
+\item{band}{For \code{"grid"}: range of the moderate penalties used by the
+selection rule.}
+
+\item{delta}{For \code{"grid"}: tolerance of the stability plateau.}
+
 \item{x}{A \code{"flexsae_selection"} object.}
 
 \item{...}{Not used.}
 }
 \value{
 An object of class \code{"flexsae_selection"}: a list with \code{model} (the
-refitted model), \code{formula}, \code{selected} (kept terms or variables),
-\code{method}, and for \code{"step"} the \code{path} (data frame of steps) and
-\code{criterion}, for \code{"boruta"} the \code{decision} table.
+refitted model), \code{formula}, \code{selected} (kept terms or variables; for
+\code{"grid"} the selected \code{K} and \code{phi}), \code{method}, and for \code{"step"} the
+\code{path} (data frame of steps) and \code{criterion}, for \code{"boruta"} the
+\code{decision} table, for \code{"grid"} the \code{grid} table (one row per fit, with
+\code{stability} at \eqn{\hat K}) and \code{criterion}.
 }
 \description{
-Selects the covariates of a fitted model and refits it with them.
+Selects the covariates of a fitted model and refits it with them, or, for
+\code{\link[=scfh_sae]{scfh_sae()}}, the number of clusters and the spatial penalty.
 }
 \details{
 \strong{Stepwise (\code{pspline_sae()}).} Every candidate model is fitted by maximum
@@ -81,6 +98,26 @@ with that of permuted copies ("shadows"), here with \code{Boruta::getImpRfZ()}
 relevant are kept (tentative ones are dropped); the model is refitted with
 them. Permutation importance can favour correlated covariates (Strobl et
 al., 2008).
+
+\strong{Grid (\code{scfh_sae()}).} The two-step rule of Maranzano, Mattera and
+Sugasawa (2026, sec. 4.3). Every pair of \code{K} and \code{phi} is fitted (without
+MSE; \code{K = 1}, the Fay-Herriot model, once); a fit is admissible when every
+cluster has enough sampled areas. The criterion uses the unpenalized
+log-likelihood \eqn{\ell} of the sampled areas at the fitted partition and
+\eqn{k = K(P + 2)} parameters (\eqn{P + 1} coefficients and one variance
+per cluster), with the formulas above. (1) For every penalty in \code{band}, the
+admissible \code{K} with the smallest criterion; \eqn{\hat K} is the most
+frequent one, ties to the smaller. (2) At \eqn{\hat K}, the stability
+\eqn{S(\phi)} is the mean adjusted Rand index (Hubert and Arabie, 1985)
+between the partition at \eqn{\phi} and those at the neighbouring
+admissible penalties of the grid in \code{band} (our reading of "adjacent grid
+values"); \eqn{\hat\phi} is the smallest penalty
+with \eqn{S(\phi) \ge \max S - \delta}. The paper gives the number of
+parameters as \eqn{K(P + 2)} without a fuller definition of its "effective
+degrees of freedom". The partition is optimized on the data, so in-sample
+criteria still tend to choose too many clusters (sec. 4.3 of the paper);
+check the grid and the Fay-Herriot model (\code{K = 1}) as well. The selected
+model is refitted with the MSE settings of \code{object}.
 }
 \examples{
 set.seed(1)
@@ -95,6 +132,9 @@ sel <- select_flexsae(fit)
 sel
 }
 \references{
+Hubert, L. and Arabie, P. (1985). Comparing partitions. \emph{Journal of
+Classification}, 2(1), 193-218. \doi{10.1007/BF01908075}
+
 Kursa, M. B. and Rudnicki, W. R. (2010). Feature selection with the Boruta
 package. \emph{Journal of Statistical Software}, 36(11), 1-13.
 \doi{10.18637/jss.v036.i11}
@@ -102,6 +142,11 @@ package. \emph{Journal of Statistical Software}, 36(11), 1-13.
 Marhuenda, Y., Morales, D. and Pardo, M. C. (2014). Information criteria
 for Fay-Herriot model selection. \emph{Computational Statistics & Data
 Analysis}, 70, 268-280. \doi{10.1016/j.csda.2013.09.016}
+
+Maranzano, P., Mattera, R. and Sugasawa, S. (2026). Small area estimation
+under spatial regimes: spatially clustered Fay-Herriot models for
+agricultural indicators. arXiv preprint 2608.13638.
+\doi{10.48550/arXiv.2608.13638}
 
 Strobl, C., Boulesteix, A.-L., Kneib, T., Augustin, T. and Zeileis, A.
 (2008). Conditional variable importance for random forests. \emph{BMC

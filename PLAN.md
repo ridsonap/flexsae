@@ -135,7 +135,27 @@ MERF Hajjem dkk. (2014), Krennmair & Schmid (2022).
   jadi bootstrap B = 200 ≈ 8 menit). Opsi: jalur cepat `.fit_fh_lm()` bila formula tanpa smooth;
   untuk smooth perlu dicari (mis. representasi marginal). Belum dikerjakan.
 
-### 2.4 Rencana lanjutan (bukan v0.1)
+### 2.4 `scfh_sae()` — Fay-Herriot berkluster spasial (eksperimental)
+
+Sumber: Maranzano, Mattera & Sugasawa (2026), arXiv:2608.13638 [V, **preprint belum ditelaah sejawat**],
+§2 pers. (8)–(9), §2.3, §4.1–4.4, Lampiran A (dibaca 28 Okt 2026); dasar: Sugasawa & Murakami (2021) [V].
+
+- **Model.** K rezim laten dengan θ_k dan σ²_uk sendiri; partisi diestimasi dengan memaksimalkan
+  log-likelihood FH + penalti Potts φ Σ w_dd' 1(k_d = k_d') pada graf ketetanggaan `W`.
+- **Algoritma.** k-means awal pada kovariat terstandar (PCA), FH per kluster dengan adjusted REML
+  (Li & Lahiri 2010; log A + ℓ_R), langkah label ICM sekuensial, kluster < P+2 dibekukan, deteksi siklus,
+  refit akhir. Pemecah FH = `.fit_fh_lm()` (`method = "AREML"` baru).
+- **MSE.** Bootstrap parametrik Algoritma 2 yang mengulang clustering; label replikat diselaraskan
+  (aturan mayoritas) di `boot_cluster`.
+- **Pemilihan K/φ.** `select_flexsae(method = "grid")`: aturan dua langkah §4.3 (BIC modal dalam pita
+  φ moderat, lalu φ terkecil di plateau stabilitas ARI).
+- **Penyimpangan.** SCFH-1 (area tak-sampel, perluasan sendiri) s.d. SCFH-5 di DISCREPANCIES.
+- **Belum.** `bench_weight`; peta kluster; interval persentil bootstrap untuk koefisien per kluster
+  (paper merekomendasikannya); koordinat untuk inisialisasi model tanpa kovariat; varian fuzzy.
+- **Alternatif non-spasial (belum dikerjakan):** clustered effects dengan fusion penalty Wang & Payne
+  (2026, JSSAM) [V-meta]; clustering FH Torkashvand, Jafari Jozani & Torabi (2017, JRSSA) [V-meta].
+
+### 2.5 Rencana lanjutan (bukan v0.1)
 
 Unit-level: P-spline nested error (Opsomer dkk. 2008), MERF unit-level (Krennmair & Schmid 2022;
 MSE bootstrap REB Chambers & Chandra 2013 dengan varians terkoreksi Mendez & Lohr 2011), MERF
@@ -335,14 +355,14 @@ termasuk skenario kalah); visualization. Angka dari `inst/extdata/*.rds` lewat
 
 ```
 R/  flexsae-package.R utils.R checks.R
-    pspline_sae.R merf_sae.R fh_gam.R (FH via mgcv, pspline) fh_lm.R (FH satu komponen varians, merf)
+    pspline_sae.R merf_sae.R scfh_sae.R fh_gam.R (FH via mgcv, pspline) fh_lm.R (FH satu komponen varians, merf, scfh)
     mse_bootstrap.R benchmark.R self_benchmark.R
     select.R importance.R partial.R methods.R autoplot.R compare.R sim_data.R data.R
 tests/testthat/  test_<modul>.R, helper-*.R, fixtures/
 data-raw/  benchmarks/  technical-report/  vignettes/
 ```
 
-Objek: kelas `c("flexsae_pspline" | "flexsae_merf", "flexsae")`; `df_est` (`domain, direct, vardir, est,
+Objek: kelas `c("flexsae_pspline" | "flexsae_merf" | "flexsae_scfh", "flexsae")`; `df_est` (`domain, direct, vardir, est,
 synthetic, random_effect, gamma, mse, rse, ci_lower, ci_upper, sampled`), `fit`, `sigma2_v`, `formula`, `call`, `data`, `model`,
 `mse_method`, `B`, `seed`, `convergence`, `iterations`, `self_benchmark`. Kolom yang tidak berlaku = NA.
 
@@ -363,7 +383,8 @@ rmarkdown, covr`. GPL (>= 3).
 | 3b ✅ | self-benchmark (WFQ pers. 23) untuk `pspline_sae`/`merf_sae` | idem |
 | 4 ✅ | `select_flexsae()` (step pspline, Boruta merf), importance, partial/ICE, `autoplot` | idem; validasi seleksi (TPR/FPR) dipindah ke fase 5 |
 | 5 | Simulasi ADEMP (paket terinstal), vignette, pkgdown | tabel dengan MCSE, situs terbangun |
-| 6 | Rencana lanjutan §2.4 | – |
+| 6 | `scfh_sae()` (SC-FH, eksperimental) + `select_flexsae(method = "grid")` + pilot lattice | test hijau; S10 kasus khusus vs sae/emdi; pilot S11 |
+| 7 | Rencana lanjutan §2.5 | – |
 
 Setiap fase: `devtools::document()` → `devtools::test()` → `R CMD check --as-cran`; hasil dilaporkan
 apa adanya. win-builder/CRAN/tag hanya setelah konfirmasi.

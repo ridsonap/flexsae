@@ -58,8 +58,11 @@
 #'                    mse = "none")
 #' head(partial_flexsae(fit, "x1"))
 partial_flexsae <- function(object, vars = NULL, n = 50, ice = FALSE, conf_level = 0.95) {
-  if (!inherits(object, "flexsae")) {
-    cli::cli_abort("{.arg object} must be a model from {.fn pspline_sae} or {.fn merf_sae}.", call = NULL)
+  if (!inherits(object, "flexsae") || identical(object$model, "scfh_sae")) {
+    cli::cli_abort(c(
+      "{.arg object} must be a model from {.fn pspline_sae} or {.fn merf_sae}.",
+      "i" = if (inherits(object, "flexsae_scfh")) "For {.fn scfh_sae} see {.code autoplot(object, type = \"clusters\")}."
+    ), call = NULL)
   }
   all_vars <- all.vars(object$formula[[3]])
   vars <- vars %||% all_vars

@@ -4,7 +4,7 @@ Aturan (pola fastsae): **kode adalah sumber kebenaran.** Setiap penyimpangan yan
 dari makalah rujukan atau package pembanding dicatat di sini, di roxygen `@details`, dan di
 `NEWS.md`, beserta alasannya. Butir yang belum dipastikan ditandai **TIDAK PASTI**.
 
-Status (28 Okt 2026): `pspline_sae()`, `merf_sae()` dan `benchmark_flexsae()` sudah ada.
+Status (28 Okt 2026): `pspline_sae()`, `merf_sae()`, `benchmark_flexsae()` dan `scfh_sae()` (eksperimental) sudah ada.
 
 ## Penyimpangan
 
@@ -24,6 +24,12 @@ Status (28 Okt 2026): `pspline_sae()`, `merf_sae()` dan `benchmark_flexsae()` su
 | SEL-1 | `select_flexsae()` (pspline, smooth) | Marhuenda, Morales & Pardo (2014) | Kriteria untuk suku smooth menghitung satu parameter penghalus sebagai satu parameter (AIC/BIC marginal); paper hanya FH linear. | Heuristik; kasus linear identik dengan fastsae. Perilaku untuk smooth diukur di fase 5. |
 | SEL-2 | `select_flexsae()` (merf, Boruta) | Kursa & Rudnicki (2010) | Target Boruta = y − v̂ dari FH linear langkah 1 (target FHRF-R), untuk kedua varian; tentative dibuang. | Satu target untuk seleksi variabel model; varian `correct` memakai himpunan yang sama untuk bagian linear dan RF. |
 | PD-1 | `partial_flexsae()` (merf) | Friedman (2001) | Bagian tetap memakai prediksi RF biasa (bukan OOB) untuk semua area. | PDP adalah fungsi hutan, bukan prediksi area; OOB hanya untuk estimasi area tersampel. |
+| SCFH-1 | `scfh_sae()` | Maranzano, Mattera & Sugasawa (2026) | Area tak-sampel (paper hanya memakai area yang disurvei): label = modus label tetangga yang sudah berlabel, dirambatkan sampai stabil (langkah label dengan suku Potts saja); tanpa tetangga berlabel → kluster dengan rata-rata kovariat terstandar terdekat (tanpa kovariat → kluster 1, yang terbesar). Estimasi sintetis x'θ̂_k. **Perluasan sendiri.** | Penalti Potts adalah satu-satunya informasi tentang label area tanpa y. Ketidakpastian label masuk ke MSE bootstrap karena labelnya dihitung ulang tiap replikat. |
+| SCFH-2 | `scfh_sae()` | idem, §4.1 | (a) PCA untuk k-means awal menyimpan komponen sampai 90% varians (paper: "PCA-compressed", tanpa ambang). (b) Model tanpa kovariat: k-means awal pada y_d, bukan koordinat spasial (fungsi tidak menerima koordinat). (c) Seri pada langkah label → label sekarang dipertahankan. (d) Hanya update sekuensial; opsi simultan paper tidak diimplementasikan. (e) σ²_uk dari profil (A)REML dengan grid + `optimize()` (`.fit_fh_lm()`), bukan Fisher scoring dengan step halving; maksimizernya sama (cek K = 1 vs `sae`/`emdi`). | Detail yang tidak ditentukan paper; pilihan paling sederhana yang konsisten dengan teks. |
+| SCFH-3 | `benchmarks/pilot/scfh_regimes.R` | idem, §3.1, Algoritma 1 | Lattice 16×16 dengan tetangga rook, bukan 256 ASR Po Valley; varians direkonstruksi per kluster: σ²_uk = β₁ₖ²·σ²_X·R²_re/R²_fe, ψ_d = β₁ₖ²·σ²_X·R²_se/R²_fe. | Geografi paper tidak tersedia; rumus varians dari pangsa R² dan ρ_XY tidak tertulis di paper. Angka pilot tidak sebanding persis dengan Tabel S2. |
+| SCFH-4 | `scfh_sae(W = )` | idem, pers. (9) | W dibaca sebagai ketetanggaan biner simetris (W > 0 atau Wᵀ > 0); bobot numeriknya diabaikan. | Langkah label paper menjumlahkan tetangga dengan w_dd' = 1; matriks row-standardized (mis. `fastsae::create_weights()`) memberi tetangga yang sama. |
+| SCFH-6 | `scfh_sae()` | idem | Kolom yang konstan/kolinear di dalam satu kluster (mis. level faktor yang tidak ada di kluster) dibuang dari fit kluster itu (pivot QR seperti `lm()`); koefisien `NA`, kontribusi nol. | Paper hanya kovariat numerik. Tanpa ini k-means awal memisahkan area menurut dummy faktor dan semua fit kluster gagal (bug ditemukan saat pengujian, test regresi ditambahkan). |
+| SCFH-5 | `scfh_sae()` bootstrap; `select_flexsae(method = "grid")` | idem, §4.3–4.4, Lampiran S6 | (a) Label bootstrap dipetakan ke kluster fit dengan aturan mayoritas (boleh banyak-ke-satu); replikat dengan kluster kolaps tetap dipakai untuk MSE (paper: dapat dikecualikan di analisis). (b) Stabilitas S(φ) = rata-rata ARI dengan nilai φ bertetangga **di antara fit admissible** dalam pita. (c) Jumlah parameter IC = K(P+2). | Paper tidak merinci (a)–(c) lebih jauh; dicatat di Rd. |
 
 ## Catatan verifikasi
 
@@ -135,3 +141,40 @@ tandanya berlawanan. Arah logis (negara besar z > 0, prediksi model A ditarik ke
 nilai positif, jadi **kemungkinan** konvensi tanda atau salah cetak di paper — tidak dipastikan.
 Satu dari 8000 fit memberi peringatan konvergensi mgcv ("step failed").
 Kesimpulan: arah dan besaran efek augmentasi direproduksi (Q turun pada model salah, naik ~2% pada model benar).
+
+### S10 — `scfh_sae()`: kasus khusus vs `sae` dan `emdi` (28 Okt 2026)
+
+- K = 1, REML/ML pada `sae::milk`: σ²ᵥ, β, EBLUP sama dengan `sae::eblupFH` (toleransi 1e-6);
+  log-likelihood ML 12,77117 = `goodness["loglike"]` sae.
+- K = 1, AREML: σ²ᵥ 0,021786 vs `emdi::fh(method = "amrl")` 0,021782 (selisih relatif 1,9e-4,
+  toleransi `optimize()` emdi seperti S2); REML 0,018550 < AREML, sesuai log A yang menarik ke atas.
+- Partisi yang pulih sempurna (ARI = 1, lattice 10×10, dua rezim terpisah jelas): koefisien, σ²_uk dan
+  EBLUP per kluster sama dengan `sae::eblupFH` pada subset kluster (1e-6).
+- Q yang dilaporkan = log-likelihood + φ × jumlah tepi dalam-kluster (dihitung ulang di test).
+- Penalti besar (φ ≥ 3, tetangga rook) mengunci langkah label greedy pada partisi awal k-means
+  kovariat: ARI 0,29 vs 1,0 pada φ = 2 (lattice 10×10, seed 3). Dicatat di Rd; paper juga melaporkan
+  kerugian over-penalization di atas φ ≈ 1,25 (Skenario 3).
+
+### S11 — pilot `scfh_sae()` pada desain Maranzano dkk. (2026), Skenario 1 (28 Okt 2026)
+
+Skrip `benchmarks/pilot/scfh_regimes.R` (paket dev via `load_all`, L'Ecuyer-CMRG, 2 core). Lattice 16×16
+(rook), tiga pita kolom (80/96/80 area), β₀ = 50/75/100, β₁ = −5/2/10, x ~ N(0, 4), pangsa R² 0,90/0,07/0,03
+dengan rekonstruksi varians SCFH-3, AREML, K = 3. **Pilot, bukan bukti final.**
+
+Bagian 1 (R = 200, MCSE ARI ≤ 0,026, RelRMSE ≤ 0,005); paper Tabel S2 (M = 1000, geografi Po Valley):
+
+| φ | ARI | share benar | RMSE relatif FH (K = 1) | admissible | Paper ARI / share / RelRMSE |
+|---|---|---|---|---|---|
+| 0 | 0,859 | 0,952 | 0,917 | 1,000 | 0,886 / 0,955 / 0,900 |
+| 0,25 | 0,929 | 0,975 | 0,891 | 1,000 | 0,958 / 0,979 / 0,872 |
+| 0,5 | 0,959 | 0,983 | 0,873 | 0,995 | 0,977 / 0,989 / 0,859 |
+| 1 | 0,955 | 0,973 | 0,866 | 0,965 | 0,917 / 0,938 / 0,867 |
+| 2 | 0,654 | 0,813 | 0,916 | 0,890 | 0,479 / 0,665 / 0,936 |
+
+Pola sama dengan paper (puncak di φ 0,5–1, over-penalization di φ = 2); ARI 1–3 poin lebih rendah pada φ ≤ 0,5,
+konsisten dengan geografi dan rekonstruksi varians yang berbeda.
+
+Bagian 2 (K = 3, φ = 0,5, R = 100, B = 100, 1,1 jam): rasio MSE bootstrap / MSE Monte Carlo per area
+median **1,00**, rasio rata-rata **0,985**, P10–P90 0,84–1,18; per rezim 1,01 / 0,99 / 0,98; semua replikat
+bootstrap berhasil. Paper (Tabel S16, Skenario 3, desain ketinggian): median 1,008, akurasi relatif 0,987.
+

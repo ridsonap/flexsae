@@ -37,6 +37,17 @@
   forest of `merf_sae()`), `partial_flexsae()` (partial dependence and ICE
   curves of the fixed part, with intervals for `pspline_sae()`), and
   `autoplot()` methods for models and benchmarked estimates.
+* New `scfh_sae()` (experimental): spatially clustered Fay-Herriot model of
+  Maranzano, Mattera and Sugasawa (2026, preprint). Areas fall into `K`
+  regimes with their own coefficients and random effect variance; the
+  partition is estimated with a Potts penalty `phi` on the neighbourhood graph
+  `W`. Cluster variances by adjusted REML (Li and Lahiri, 2010; new
+  `method = "AREML"` of the internal Fay-Herriot solver, agreeing with
+  `emdi::fh(method = "amrl")`), and bootstrap MSE that reruns the clustering.
+  Unsampled areas take their neighbours' cluster, an extension not in the
+  paper. `select_flexsae(method = "grid")` chooses `K` and `phi` with the
+  two-step rule of the paper, and `autoplot(type = "clusters")` shows the
+  coefficients by cluster. Self-benchmarking is not available for this model.
 * Model objects keep the bootstrap truth and direct estimates of every
   replicate (`boot_theta`, `boot_y`).
 * `print()`, `summary()`, `coef()`, `fitted()` and `residuals()` methods for

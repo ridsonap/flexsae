@@ -6,7 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 `flexsae` is an R package (GPL-3, in development) for **area-level** small area estimation with
 non-linear covariate effects: `pspline_sae()` (semiparametric Fay-Herriot with penalized splines,
-REML via `mgcv`) and `merf_sae()` (Fay-Herriot with a random forest fixed part, `ranger`), with
+REML via `mgcv`), `merf_sae()` (Fay-Herriot with a random forest fixed part, `ranger`) and the
+experimental `scfh_sae()` (spatially clustered Fay-Herriot), with
 parametric bootstrap MSE, covariate selection, benchmarking and `ggplot2` plots. Unit-level methods
 are planned later. The design, references and phases are in `PLAN.md` (Indonesian). It follows the
 conventions of the sister package `fastsae` (github.com/ridsonap/fastsae).
@@ -61,6 +62,10 @@ Scripts in `benchmarks/` use the **installed** package, not `load_all()`.
   (grid + `optimize()`), used by `merf_sae()` because mgcv is O(D^3) per fit (check S5).
 - `R/merf_sae.R`: `merf_sae()`, `.merf_fit()` (one fit, reused per bootstrap replicate),
   `.fhrf_combine()` (EBLUP step, eqs. 10/14 of Bukhari et al. 2026), `.fit_rf()` (ranger, OOB).
+- `R/scfh_sae.R`: `scfh_sae()` (experimental, Maranzano et al. 2026 preprint), `.scfh_fit()` (one fit,
+  reused per bootstrap replicate: k-means start, AREML per cluster, ICM label sweeps), `.label_unsampled()`
+  (own extension, SCFH-1), `.align_labels()`, `.adjusted_rand()`. Keep `K = 1` equal to `sae::eblupFH`
+  and AREML equal to `emdi::fh(method = "amrl")` (check S10).
 - `R/benchmark.R`: `benchmark_flexsae()` (S3: `flexsae`, numeric default), `.benchmark_core()`,
   `.bm_rule()` (rules follow fastsae's `.benchmark_worker`). The MSE re-benchmarks the stored model
   bootstrap replicates (`boot_errors`, `boot_theta`, `boot_y`); keep those fields in every model.

@@ -12,3 +12,4 @@
 ^technical-report$
 ^benchmarks$
 ^data-raw$
+^\.git$
