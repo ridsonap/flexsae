@@ -86,9 +86,17 @@
 }
 
 #' Design matrix of the linear terms of a formula for all areas
+#'
+#' @param ref_data Optional data whose factor levels are used, so that new
+#'   data with fewer levels (e.g. one value of a covariate for partial
+#'   dependence) give the same columns.
 #' @noRd
-.design_matrix <- function(formula, data) {
+.design_matrix <- function(formula, data, ref_data = NULL) {
   tt <- stats::delete.response(stats::terms(formula))
-  mf <- stats::model.frame(tt, data, na.action = stats::na.pass)
+  xlev <- NULL
+  if (!is.null(ref_data)) {
+    xlev <- stats::.getXlevels(tt, stats::model.frame(tt, ref_data, na.action = stats::na.pass))
+  }
+  mf <- stats::model.frame(tt, data, na.action = stats::na.pass, xlev = xlev)
   stats::model.matrix(tt, mf)
 }

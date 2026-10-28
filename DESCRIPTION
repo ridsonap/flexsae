@@ -12,8 +12,8 @@ Description: Small area estimation for area-level data when the relationship
     with random forests (Bukhari et al., 2026, <doi:10.18280/isi.310604>), both
     with parametric bootstrap mean squared error estimation, and benchmarking
     of the estimates to aggregate targets with the mean squared error of the
-    benchmarked estimates. Selection of covariates and 'ggplot2'
-    visualizations are planned; the package is under development.
+    benchmarked estimates, selection of covariates, partial dependence and
+    'ggplot2' visualizations. The package is under development.
 License: GPL (>= 3)
 URL: https://github.com/ridsonap/flexsae
 BugReports: https://github.com/ridsonap/flexsae/issues
@@ -23,11 +23,13 @@ Depends:
     R (>= 4.1.0)
 Imports:
     cli,
+    ggplot2,
     mgcv,
     ranger,
     stats,
     utils
 Suggests:
+    Boruta,
     emdi,
     fastsae,
     sae,

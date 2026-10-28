@@ -87,7 +87,8 @@
 #'   * `smooth`: table of the smooth terms (effective degrees of freedom and
 #'     approximate tests from [mgcv::summary.gam()]).
 #'   * `sigma2_v`, `fit` (the [mgcv::gam()] object), `formula`, `call`, `data`,
-#'     `model`, `method`, `self_benchmark` (logical), `mse_method`, `B`, `B_success`, `n_boot_failed`,
+#'     `model`, `method`, `self_benchmark` (logical), `bench` (self-benchmarking
+#'     weights, groups and augmentation columns, or `NULL`), `mse_method`, `B`, `B_success`, `n_boot_failed`,
 #'     `boot_errors` (matrix of \eqn{\hat\theta^*_d - \theta^*_d}), `boot_theta`
 #'     (\eqn{\theta^*_d}), `boot_y` (\eqn{y^*_d}), `seed`,
 #'     `conf_level` and `convergence`.
@@ -206,6 +207,7 @@ pspline_sae <- function(
       model = "pspline_sae",
       method = method,
       self_benchmark = !is.null(sb),
+      bench = sb,
       mse_method = mse,
       B = if (mse == "bootstrap") as.integer(B) else NA_integer_,
       B_success = boot$B_success,

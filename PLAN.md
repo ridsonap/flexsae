@@ -196,6 +196,12 @@ menyimpan versi paket sumber. Setiap perbaikan bug disertai test yang gagal sebe
 
 ## 4. Seleksi variabel (`select_flexsae()`)
 
+> **Status 28 Okt 2026 (fase 4 selesai).** Diimplementasi: stepwise pspline (ℓ = skor ML mgcv = log-likelihood
+> Gaussian marginal; k = koefisien tak-berpenalti + komponen varians; kasus linear = `fastsae::step_sae`
+> persis, test) dan Boruta untuk merf (`getImpRfZ`, target y − v̂ FH linear). **Ditunda:** shrinkage
+> `select = TRUE` (ambang edf heuristik; Marra & Wood belum dibaca), ALE (Apley & Zhu) sebagai plot,
+> `type = "map"`, `autoplot.list()`. Validasi seleksi (TPR/FPR, proporsi himpunan benar) masuk fase 5.
+
 | Model | Metode | Rujukan | Catatan |
 |---|---|---|---|
 | pspline | Shrinkage double-penalty (`select = TRUE`) | Marra & Wood (2011) [V-meta] | Satu fit; ambang edf heuristik, dicek di makalah |
@@ -355,7 +361,7 @@ rmarkdown, covr`. GPL (>= 3).
 | 2 ✅ | `merf_sae()` dua varian × dua algoritma + bootstrap MSE, E2–E3, pemecah FH cepat | idem |
 | 3a ✅ | `benchmark_flexsae()` post-hoc, MSE terbenchmark bootstrap, E4–E6, tes properti | idem |
 | 3b ✅ | self-benchmark (WFQ pers. 23) untuk `pspline_sae`/`merf_sae` | idem |
-| 4 | `select_flexsae()`, importance, partial, `autoplot` | idem + validasi seleksi pilot |
+| 4 ✅ | `select_flexsae()` (step pspline, Boruta merf), importance, partial/ICE, `autoplot` | idem; validasi seleksi (TPR/FPR) dipindah ke fase 5 |
 | 5 | Simulasi ADEMP (paket terinstal), vignette, pkgdown | tabel dengan MCSE, situs terbangun |
 | 6 | Rencana lanjutan §2.4 | – |
 
