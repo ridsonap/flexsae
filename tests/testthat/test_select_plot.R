@@ -9,7 +9,7 @@ sel_data <- function(D = 80, seed = 2) {
 }
 
 test_that("linear stepwise selection equals fastsae::step_sae", {
-  skip_if_not_installed("fastsae")
+  skip_if_not_installed("fastsae", "1.0.0")
   d <- sel_data()
   fit <- pspline_sae(y ~ x1 + x2 + x3 + x4, "vardir", data = d, mse = "none")
   ref_fit <- fastsae::eblup_fh(y ~ x1 + x2 + x3 + x4, vardir = "vardir", data = d)
