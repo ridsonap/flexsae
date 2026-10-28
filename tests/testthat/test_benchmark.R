@@ -8,7 +8,7 @@ bm_vector_data <- function() {
 }
 
 test_that("rules agree with fastsae::benchmark_sae (E4)", {
-  skip_if_not_installed("fastsae")
+  skip_if_not_installed("fastsae", "1.0.0")
   d <- bm_vector_data()
   cmp <- function(...) {
     ours <- benchmark_flexsae(d$est, ...)$benchmarked
@@ -30,7 +30,7 @@ test_that("rules agree with fastsae::benchmark_sae (E4)", {
 })
 
 test_that("optimal agrees with fastsae and saebenchmarking", {
-  skip_if_not_installed("fastsae")
+  skip_if_not_installed("fastsae", "1.0.0")
   skip_if_not_installed("saebenchmarking")
   d <- bm_vector_data()
   tg <- c(a = 0.5, b = 0.45, c = 0.55)
