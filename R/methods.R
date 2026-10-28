@@ -37,6 +37,11 @@ NULL
 print.flexsae <- function(x, digits = max(3L, getOption("digits") - 3L), ...) {
   df <- x$df_est
   cat(.model_label(x$model), "\n", sep = "")
+  if (!is.null(x$variant)) {
+    cat("Variant: ", x$variant, ", algorithm: ", x$algorithm, sep = "")
+    if (identical(x$algorithm, "merf")) cat(" (", x$iterations, " iterations)", sep = "")
+    cat("\n")
+  }
   cat("Method: ", x$method, "\n", sep = "")
   cat("Areas: ", nrow(df), " (", sum(df$sampled), " sampled, ", sum(!df$sampled), " unsampled)\n", sep = "")
   cat("Area random effect variance: ", format(x$sigma2_v, digits = digits), "\n", sep = "")

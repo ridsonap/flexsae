@@ -4,7 +4,7 @@ Aturan (sama dengan fastsae): tidak ada DOI/entri yang dikarang. Yang tidak dapa
 dikonfirmasi ke Crossref, situs penerbit, atau PDF resmi dicatat di sini dan **tidak
 dikutip** di kode, Rd, vignette, maupun laporan.
 
-Tanggal verifikasi: 28 Okt 2026. Entri terverifikasi ada di `references.bib` (68 entri).
+Tanggal verifikasi: 28 Okt 2026. Entri terverifikasi ada di `references.bib` (69 entri; `wright2017ranger` ditambah 28 Okt 2026 dari Crossref + halaman JSS untuk halaman 1–17).
 Lingkup v0.1 kini **area-level** saja (lihat `PLAN.md`); rujukan unit-level tetap disimpan
 untuk rencana lanjutan.
 Cara verifikasi: `api.crossref.org/works/<doi>` untuk entri ber-DOI; PDF di
@@ -32,7 +32,7 @@ diimplementasikan sebelum teks lengkapnya dibaca dan nomor persamaannya dicatat
 
 | Entri | Yang sudah dibaca | Yang belum |
 |---|---|---|
-| `bukhari2026random` | Halaman penerbit (iieta.org): abstrak, persamaan (1)–(17): varian FHRF-C dan FHRF-R, EM untuk σ²ᵥ, bootstrap parametrik (15)–(17) | Apakah RF memakai prediksi OOB atau in-sample; pengaturan RF; detail DGP simulasi. **Catatan venue:** *Ingénierie des Systèmes d'Information* (IIETA) berprofil rendah untuk metodologi statistik; dasar metodologis MERF tetap `hajjem2014mixed` dan `krennmair2022flexible`. |
+| `bukhari2026random` | Halaman penerbit (iieta.org), dibaca ulang 28 Okt 2026: Bagian 2.1–2.6, pers. (1)–(18), desain simulasi 3.1 (m = 250, 100 replikasi, 10 skenario), Tabel 1–6. **RF memakai prediksi OOB** (pers. 9, 13). Pers. (4) tercetak sama dengan (3); langkah β EM tidak tertulis. | Pengaturan RF (num.trees, mtry) tidak ditemukan di teks yang dibaca. **Catatan venue:** *Ingénierie des Systèmes d'Information* (IIETA) berprofil rendah untuk metodologi statistik; dasar metodologis MERF tetap `hajjem2014mixed` dan `krennmair2022flexible`. |
 | `bukhari2025modified` | Metadata (prosiding *BIO Web of Conferences*) | Isi |
 | `opsomer2008nonparametric` | Abstrak (Crossref): ada hasil teoretis MSE prediksi dan bootstrap non-parametrik | Rumus MSE analitik dan langkah bootstrap |
 | `krennmair2022flexible` | Versi arXiv 2201.10933v2: model, algoritma EM, prediktor, bootstrap REB, skenario simulasi | Versi terbit JRSS C (cek apakah ada perubahan dari preprint) |
