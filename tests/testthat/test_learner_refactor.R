@@ -1,6 +1,11 @@
 test_that("merf_sae() is unchanged by the shared learner engine", {
   # fixture made with the code before .merf_fit() took a learner
   ref <- readRDS(test_path("fixtures", "merf_reference.rds"))
+  # ranger's forests depend on the platform's C++ random number generation, so the fixture
+  # is reproducible only on the platform and ranger version that made it
+  skip_on_cran()
+  skip_if(Sys.info()[["sysname"]] != attr(ref, "sysname") || packageVersion("ranger") != attr(ref, "ranger"),
+          "fixture made on another platform or ranger version")
   d <- sim_nonlinear_area(D = 60, seed = 11)
   d$N <- withr::with_seed(1, rpois(60, 300))
   d$y[c(4, 40)] <- NA
