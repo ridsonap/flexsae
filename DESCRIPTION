@@ -7,12 +7,12 @@ Authors@R:
            email = "alfrzlp@gmail.com",
            comment = c(ORCID = "0000-0003-0617-0214"))
 Description: Small area estimation for area-level data when the relationship
-    between the target and the covariates is non-linear. Planned models are a
-    semiparametric Fay-Herriot model with penalized splines and a Fay-Herriot
-    model combined with random forests, with bootstrap mean squared error
-    estimation, selection of covariates, benchmarking to aggregate targets and
-    'ggplot2' visualizations. The package is under development; the spline
-    model is available.
+    between the target and the covariates is non-linear: a semiparametric
+    Fay-Herriot model with penalized splines and a Fay-Herriot model combined
+    with random forests (Bukhari et al., 2026, <doi:10.18280/isi.310604>), both
+    with parametric bootstrap mean squared error estimation. Selection of
+    covariates, benchmarking to aggregate targets and 'ggplot2' visualizations
+    are planned; the package is under development.
 License: GPL (>= 3)
 URL: https://github.com/ridsonap/flexsae
 BugReports: https://github.com/ridsonap/flexsae/issues
@@ -23,6 +23,7 @@ Depends:
 Imports:
     cli,
     mgcv,
+    ranger,
     stats,
     utils
 Suggests:

@@ -45,7 +45,9 @@ Scripts in `benchmarks/` use the **installed** package, not `load_all()`.
   `technical-report/DISCREPANCIES.md`, roxygen `@details` and `NEWS.md`.
 - `mgcv::gam(y ~ ... + s(domain, bs = "re"), weights = 1/vardir, scale = 1, method = "REML")`
   reproduces `sae::eblupFH` REML (check S1 in `DISCREPANCIES.md`); the random effect variance is
-  `scale / sp`. Keep that agreement under test. `emdi::fh` agrees only to ~1e-4 because of its
+  `scale / sp`. Keep that agreement under test. `.fit_fh_lm()` must agree with `sae::eblupFH` too.
+- `merf_sae(algorithm = "fhrf")` follows Bukhari et al. (2026) as published (one pass, OOB);
+  `algorithm = "merf"` is our own unpublished adaptation (MERF-3) and must stay labelled experimental. `emdi::fh` agrees only to ~1e-4 because of its
   optimizer tolerance (check S2); do not tighten that test.
 
 ## Code map
@@ -54,4 +56,8 @@ Scripts in `benchmarks/` use the **installed** package, not `load_all()`.
   (internal columns `.flexsae_y`, `.flexsae_area`, `.flexsae_w`).
 - `R/fh_gam.R`: `.fit_fh_gam()` / `.predict_fh_gam()`, the Fay-Herriot fit through mgcv shared by the models.
 - `R/mse_bootstrap.R`: `.pboot_mse()`, naive parametric bootstrap; the model passes a `refit()` closure.
+- `R/fh_lm.R`: `.fit_fh_lm()`, linear Fay-Herriot with one variance component by profile REML/ML
+  (grid + `optimize()`), used by `merf_sae()` because mgcv is O(D^3) per fit (check S5).
+- `R/merf_sae.R`: `merf_sae()`, `.merf_fit()` (one fit, reused per bootstrap replicate),
+  `.fhrf_combine()` (EBLUP step, eqs. 10/14 of Bukhari et al. 2026), `.fit_rf()` (ranger, OOB).
 - `R/pspline_sae.R`, `R/methods.R` (print/summary/coef/fitted/residuals), `R/utils.R`.

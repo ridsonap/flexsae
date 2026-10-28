@@ -4,15 +4,16 @@ Aturan (pola fastsae): **kode adalah sumber kebenaran.** Setiap penyimpangan yan
 dari makalah rujukan atau package pembanding dicatat di sini, di roxygen `@details`, dan di
 `NEWS.md`, beserta alasannya. Butir yang belum dipastikan ditandai **TIDAK PASTI**.
 
-Status: belum ada kode metode (28 Okt 2026). Butir di bawah adalah penyimpangan yang sudah
-**direncanakan** di `PLAN.md`; nomor baris ditambahkan saat kodenya ditulis.
+Status (28 Okt 2026): `pspline_sae()` dan `merf_sae()` sudah ada.
 
-## Direncanakan
+## Penyimpangan
 
 | ID | Fungsi | Rujukan | Penyimpangan | Alasan |
 |---|---|---|---|---|
-| MERF-1 | `merf_sae()` | Bukhari dkk. (2026), pers. (3)–(5) | σ²ᵥ diestimasi dengan REML Fay-Herriot dengan offset f̂, bukan EM Valdez dkk. | Rujukan EM belum diverifikasi; REML FH via mgcv sudah terbukti sama dengan `sae::eblupFH` (catatan S1). |
-| MERF-2 | `merf_sae()` | Bukhari dkk. (2026), pers. (11)–(14) | Langkah efek acak memakai prediksi RF out-of-bag, bukan in-sample. **TIDAK PASTI** apakah Bukhari dkk. memakai OOB. | Prediksi in-sample RF menyerap galat sampling y_d sehingga σ²ᵥ terlalu kecil; OOB mengikuti Krennmair & Schmid (2022). |
+| MERF-1 | `merf_sae()` (`R/fh_lm.R`) | Bukhari dkk. (2026), pers. (3)–(5) | σ²ᵥ dari profil likelihood REML (default) atau ML, bukan EM Valdez dkk. | Titik tetap EM = ML (spike S4), jadi `method = "ML"` memberi fit yang sama dengan paper. Default REML agar konsisten dengan `pspline_sae()` dan `sae::eblupFH()`. |
+| MERF-2 | `merf_sae()` | Bukhari dkk. (2026), pers. (9), (13) | **Bukan penyimpangan lagi.** Paper eksplisit memakai prediksi OOB; flexsae juga. Area tak-sampel memakai prediksi RF biasa (paper tidak menyebutnya). | Revisi sebelumnya menandai ini TIDAK PASTI; paper sudah dibaca ulang. |
+| MERF-3 | `merf_sae(algorithm = "merf")` | Hajjem dkk. (2014); Krennmair & Schmid (2022) | Iterasi RF ↔ FH berofset untuk area-level: adaptasi sendiri, tidak ada di paper mana pun. Kriteria henti hanya pada σ²ᵥ. | Pada `"fhrf"`, σ̂²ᵥ FH linear juga menyerap non-linearitas yang tidak tertangkap (D = 300: 0,430 vs 0,311 setelah iterasi). Eksperimental; dievaluasi di simulasi fase 5. |
+| MERF-4 | `merf_sae()` | Bukhari dkk. (2026) | RF memakai variabel RHS formula tanpa transformasi; FH linear memakai suku formula apa adanya. | Paper tidak membahas transformasi; transformasi monoton tidak mengubah RF. |
 | PSP-1 | `pspline_sae()` | Ruppert, Wand & Carroll (2003); Wand (2003) | Basis spline berpenalti mgcv (default thin-plate, opsi `"ps"`), bukan basis polinomial terpotong. | Struktur model dan estimand sama; engine REML mgcv (Wood 2011) teruji. |
 
 ## Catatan verifikasi
@@ -53,3 +54,34 @@ presisi optimizer emdi, bukan perbedaan model. Test terhadap emdi memakai tolera
 Mengganti `G$y` pada objek `gam(..., fit = FALSE)` lalu memanggil `gam(G = G)` memberi parameter
 penghalus berbeda dari fit penuh pada respons yang sama (sp 46,7 vs 56,5 pada `milk`). Bootstrap
 `pspline_sae()` karena itu mem-fit ulang penuh dari data. Penyebab di mgcv belum ditelusuri.
+
+### S4 — titik tetap EM Bukhari dkk. (2026) = ML (28 Okt 2026)
+
+EM pers. (3)–(5) pada `sae::milk`, dengan langkah β GLS pada y − v̂ (pers. (4) di paper tercetak sama
+dengan (3), jadi langkah β tidak tertulis): 77 iterasi, σ²ᵥ = 0,01551751 vs `sae::eblupFH(ML)`
+0,01551755; |Δβ| maks 7,5e-8. Kesimpulan: FH–EM paper adalah estimator ML. Skrip spike ada di
+scratchpad sesi; hasilnya dijadikan dasar MERF-1.
+
+### S5 — pemecah FH satu komponen varians vs mgcv (28 Okt 2026)
+
+`.fit_fh_lm()` (grid 101 titik di [0, 5·var(y)], lalu `optimize()` dengan tol 1e-10·batas atas) pada
+`milk`: REML σ²ᵥ 0,01855033 (sae 0,01855022), ML 0,01551751 (sae 0,01551755); |Δβ| ≤ 1,6e-7, |ΔSE| ≤ 1,7e-7.
+Waktu per fit: 0,007 dtk (milk); 0,006 dtk pada D = 300 (rata-rata 20 fit) vs mgcv 2,57 dtk, σ²ᵥ identik (0,4295193). Tanpa efek tetap,
+REML = ML dan sama dengan maksimisasi langsung (test). Tabel koefisien memakai uji z (konvensi `sae`).
+
+### S6 — pilot kalibrasi bootstrap MSE `merf_sae(algorithm = "fhrf")` (28 Okt 2026)
+
+Skrip `benchmarks/pilot/merf_mse_pilot.R`: x tetap, D = 100, θ_d = 2 + sin(1,5 x1) + 0,5 x2 + v_d
+(σᵥ = 0,5), ψ_d ~ U(0,2; 0,6), R = 100 replikasi, B = 50, `num.trees = 200`, REML.
+
+| Varian | MSE empiris (rata-rata area) | Bootstrap (rata-rata) | Rasio | RB area: median [P10, P90] |
+|---|---|---|---|---|
+| replace | 0,1988 | 0,2299 | 1,156 | 0,159 [−0,022; 0,472] |
+| correct | 0,1957 | 0,2311 | 1,181 | 0,170 [−0,017; 0,424] |
+
+Bootstrap **melebihkan** MSE ~16–18% (konservatif). **Dugaan penyebab (belum diuji):** σ̂²ᵥ dari FH
+linear menyerap non-linearitas (±0,43 pada data sejenis vs nilai benar 0,25), sehingga θ* = m̂ + v*
+terlalu menyebar. Ini sifat skema Bukhari dkk. pers. (15)–(17) bersama σ̂²ᵥ linear, bukan bug yang
+teridentifikasi. Yang perlu diuji di fase 5 (ADEMP dengan MCSE): (a) `algorithm = "merf"` (σ²ᵥ
+diestimasi ulang), (b) DGP linear (rasio seharusnya ≈ 1), (c) D lebih besar. Pilot ini tidak
+melaporkan MCSE dan tidak boleh dikutip sebagai hasil simulasi.

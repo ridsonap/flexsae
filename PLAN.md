@@ -104,24 +104,36 @@ $y_d$ = NA, $x_d$ tersedia. Estimand: $\theta_d$.
 
 ### 2.3 `merf_sae()` — Fay-Herriot dengan random forest
 
-Sumber: Bukhari dkk. (2026) [V]; algoritma MERF Hajjem dkk. (2014), Krennmair & Schmid (2022).
+Sumber: Bukhari dkk. (2026) [V], Bagian 2.3–2.6, pers. (6)–(17) (dibaca ulang 28 Okt 2026); algoritma
+MERF Hajjem dkk. (2014), Krennmair & Schmid (2022).
+
+> **Koreksi atas revisi PLAN sebelumnya.** Revisi sebelumnya menulis algoritma Bukhari dkk. sebagai
+> iterasi RF ↔ FH sampai konvergen. Itu keliru. Paper menjalankan **satu putaran**: FH–EM linear →
+> RF sekali (prediksi OOB) → EBLUP dengan σ̂²ᵥ dari FH linear. Paper juga eksplisit memakai OOB
+> ("rely solely on OOB estimates", pers. 9), jadi butir TIDAK PASTI di MERF-2 terjawab.
 
 - **Varian** `variant = c("replace", "correct")`:
-  - `"replace"` (FHRF-R, pers. 11–14): $y_d = f(x_d) + v_d + e_d$, $f$ random forest.
-  - `"correct"` (FHRF-C, pers. 6–10): $f^*(x_d) = x_d'\hat\beta + \hat f(x_d)$, RF pada residual FH linear.
-- **Algoritma (`replace`).** $\hat v^{(0)} = 0$; ulangi: (a) RF (`ranger`) pada $y_d - \hat v_d$ untuk area tersampel;
-  (b) prediksi **out-of-bag** $\hat f^{OOB}$; (c) fit FH dengan offset $\hat f^{OOB}$ (REML, via mgcv seperti S1)
-  → $\hat\sigma_v^2$, $\hat v_d = \gamma_d(y_d - \hat f^{OOB}_d)$, $\gamma_d = \hat\sigma_v^2/(\hat\sigma_v^2 + \psi_d)$; sampai perubahan
-  relatif $\hat v$ dan $\hat\sigma_v^2$ < `tol`. Gagal konvergen dalam `maxit` → `convergence = FALSE` + warning.
-- **Prediktor.** $\hat\theta_d = \hat f(x_d) + \gamma_d(y_d - \hat f(x_d))$ (pers. 10/14); tak-sampel $\hat\theta_d = \hat f(x_d)$.
-- **MSE.** Bootstrap parametrik pers. (15)–(17) Bukhari dkk.: $\theta^*_d \sim N(\hat f(x_d), \hat\sigma_v^2)$,
-  $y^*_d \sim N(\theta^*_d, \psi_d)$, fit ulang seluruh algoritma (RF + FH), rata-rata kuadrat galat.
-  Seed per replikat untuk RF (`ranger(seed = )`) agar reprodusibel.
-- **Penyimpangan yang disengaja** (DISCREPANCIES MERF-1, MERF-2): σ²ᵥ dengan REML FH berofset, bukan EM
-  Valdez dkk. (rujukan [BELUM]); OOB, bukan prediksi in-sample (in-sample RF menyerap galat sampling
-  sehingga σ²ᵥ terlalu kecil) — **TIDAK PASTI** apakah Bukhari dkk. memakai OOB.
-- **Asumsi/risiko.** RF dengan $D$ observasi kecil (mis. 50) tidak stabil; `mtry`, `min.node.size`,
-  `num.trees` dilaporkan; simulasi mengukur kapan merf kalah dari FH linear.
+  - `"replace"` (FHRF-R, pers. 11–14): RF pada $y_d - \hat v_d$; $\hat m_d = \hat f(x_d)$.
+  - `"correct"` (FHRF-C, pers. 6–10): RF pada $y_d - x_d'\hat\beta - \hat v_d$; $\hat m_d = x_d'\hat\beta + \hat f(x_d)$.
+- **Algoritma** `algorithm = c("fhrf", "merf")`:
+  - `"fhrf"` (default, sesuai paper): FH linear → RF (OOB untuk area tersampel, prediksi biasa untuk
+    tak-sampel) → $\hat\theta_d = \hat m_d + \gamma_d(y_d - \hat m_d)$ dengan σ̂²ᵥ FH linear.
+  - `"merf"` (**adaptasi sendiri, eksperimental**; DISCREPANCIES MERF-3): RF dan FH berofset diulang;
+    σ̂²ᵥ diestimasi ulang dengan RF sebagai offset. Kriteria henti: perubahan σ̂²ᵥ / (σ̂²ᵥ + ψ̄) < `tol`
+    (1e-3), `maxit` 25. Perubahan θ̂ tidak dipakai karena RF berbentuk tangga sehingga θ̂ terus
+    berfluktuasi ±2% sd(y) (diamati pada D = 300).
+- **Estimasi σ²ᵥ.** Paper memakai EM (Valdez dkk., [BELUM]). Spike S4: titik tetap EM pers. (3)–(5)
+  (dengan langkah β GLS, yang tidak dicetak di paper) = ML `sae::eblupFH`. Default flexsae REML
+  (sama dengan `pspline_sae`); `method = "ML"` mereproduksi paper (MERF-1).
+- **Engine FH.** Pemecah profil-likelihood satu dimensi (`R/fh_lm.R`), bukan mgcv: mgcv dengan
+  `s(area, bs = "re")` makan ~2,5 dtk per fit pada D = 300 (S5), sedangkan merf dan bootstrapnya
+  mem-fit ulang ratusan kali. Hasilnya sama dengan `sae::eblupFH` sampai ~1e-7.
+- **MSE.** Bootstrap parametrik pers. (15)–(17), fit ulang seluruh algoritma termasuk RF.
+- **Asumsi/risiko.** RF dengan D kecil tidak stabil; RF memakai variabel RHS tanpa transformasi; semua
+  RF dalam satu fit memakai satu seed (`ranger(seed = )`, ditarik dari stream R).
+- **Batasan `pspline_sae` yang ditemukan di fase 2:** biaya mgcv O(D³) per fit (2,5 dtk pada D = 300,
+  jadi bootstrap B = 200 ≈ 8 menit). Opsi: jalur cepat `.fit_fh_lm()` bila formula tanpa smooth;
+  untuk smooth perlu dicari (mis. representasi marginal). Belum dikerjakan.
 
 ### 2.4 Rencana lanjutan (bukan v0.1)
 
@@ -294,7 +306,7 @@ termasuk skenario kalah); visualization. Angka dari `inst/extdata/*.rds` lewat
 
 ```
 R/  flexsae-package.R utils.R checks.R
-    pspline_sae.R merf_sae.R fh_offset.R (langkah FH REML berofset, dipakai keduanya)
+    pspline_sae.R merf_sae.R fh_gam.R (FH via mgcv, pspline) fh_lm.R (FH satu komponen varians, merf)
     mse_bootstrap.R benchmark.R self_benchmark.R
     select.R importance.R partial.R methods.R autoplot.R compare.R sim_data.R data.R
 tests/testthat/  test_<modul>.R, helper-*.R, fixtures/
@@ -317,7 +329,7 @@ rmarkdown, covr`. GPL (>= 3).
 |---|---|---|
 | 0 ✅ | Repo publik, kerangka package, CI; spike S1 lulus | R CMD check bersih pada kerangka |
 | 1 ✅ | inti FH mgcv (`R/fh_gam.R`) + `pspline_sae()` (titik, bootstrap MSE, S3), E1 vs sae/fastsae/emdi | test hijau, check 0 ERROR/WARNING |
-| 2 | `merf_sae()` dua varian + bootstrap MSE, E2–E3 | idem |
+| 2 ✅ | `merf_sae()` dua varian × dua algoritma + bootstrap MSE, E2–E3, pemecah FH cepat | idem |
 | 3 | `benchmark_flexsae()`, self-benchmark, MSE terbenchmark, E4–E6, tes properti | idem |
 | 4 | `select_flexsae()`, importance, partial, `autoplot` | idem + validasi seleksi pilot |
 | 5 | Simulasi ADEMP (paket terinstal), vignette, pkgdown | tabel dengan MCSE, situs terbangun |
