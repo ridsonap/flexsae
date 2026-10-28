@@ -12,13 +12,16 @@ experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](h
 
 **flexsae** is an R package, under development, for small area
 estimation with area-level data (direct estimates with known sampling
-variances) when the covariates act non-linearly. It does not export
-model functions yet.
+variances) when the covariates act non-linearly.
+
+Available:
+
+- `pspline_sae()`: semiparametric Fay-Herriot model with penalized
+  splines (fitted by REML or ML with ‘mgcv’), with parametric bootstrap
+  MSE.
 
 Planned for the first release:
 
-- `pspline_sae()`: semiparametric Fay-Herriot model with penalized
-  splines (fitted by REML with ‘mgcv’), with parametric bootstrap MSE.
 - `merf_sae()`: Fay-Herriot model with a random forest for the fixed
   part, with parametric bootstrap MSE.
 - `select_flexsae()`, `benchmark_flexsae()` (benchmarking to aggregate

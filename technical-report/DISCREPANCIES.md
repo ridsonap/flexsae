@@ -32,6 +32,24 @@ mgcv::gam(yi ~ as.factor(MajorArea) + s(area, bs = "re"),
 | β | – | – | maks abs 1,6e-7 |
 | EBLUP | – | – | maks relatif 7,8e-7 |
 
+ML (spike yang sama): σ²ᵥ 0,01551752 vs `sae` 0,01551755; EBLUP selisih relatif ≤ 2,6e-7.
+
 Kesimpulan: `weights = 1/ψ` dengan `scale = 1` mengikat varians sampling ke ψ_d, dan
 `s(area, bs = "re")` mereproduksi efek area FH. Selisih orde 1e-7 berasal dari kriteria henti
 optimizer. Akan dijadikan test regresi (toleransi 1e-5 untuk σ²ᵥ, 1e-6 relatif untuk EBLUP).
+
+### S2 — `emdi::fh` REML berbeda ~1,5e-4 relatif (28 Okt 2026)
+
+Pada `milk`, `emdi::fh(method = "reml")` memberi σ²ᵥ = 0,01854753, sedangkan `sae::eblupFH`,
+`fastsae::eblup_fh` dan `pspline_sae()` memberi 0,0185502–0,0185503. Penyebab (dibaca dari kode
+emdi 2.2.3, fungsi internal `Reml`): emdi memaksimalkan likelihood REML dengan `stats::optimize()`
+pada toleransi default (`.Machine$double.eps^0.25` ≈ 1,2e-4); argumen `tol` emdi tidak berlaku untuk
+FH REML tanpa korelasi spasial (hasil sama untuk `tol = 1e-4` dan `1e-8`). Jadi selisihnya adalah
+presisi optimizer emdi, bukan perbedaan model. Test terhadap emdi memakai toleransi 5e-4 (σ²ᵥ) dan
+1e-4 (estimasi area); terhadap sae dan fastsae tetap 1e-5 / 1e-6.
+
+### S3 — refit bootstrap tidak memakai `mgcv::gam(G = )` (28 Okt 2026)
+
+Mengganti `G$y` pada objek `gam(..., fit = FALSE)` lalu memanggil `gam(G = G)` memberi parameter
+penghalus berbeda dari fit penuh pada respons yang sama (sp 46,7 vs 56,5 pada `milk`). Bootstrap
+`pspline_sae()` karena itu mem-fit ulang penuh dari data. Penyebab di mgcv belum ditelusuri.
