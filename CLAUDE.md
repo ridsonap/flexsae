@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 `flexsae` is an R package (GPL-3, in development) for **area-level** small area estimation with
 non-linear covariate effects: `pspline_sae()` (semiparametric Fay-Herriot with penalized splines,
 REML via `mgcv`), `merf_sae()` (Fay-Herriot with a random forest fixed part, `ranger`) and the
-experimental `scfh_sae()` (spatially clustered Fay-Herriot), with
+experimental `boost_sae()` (XGBoost fixed part) and `scfh_sae()` (spatially clustered Fay-Herriot), with
 parametric bootstrap MSE, covariate selection, benchmarking and `ggplot2` plots. Unit-level methods
 are planned later. The design, references and phases are in `PLAN.md` (Indonesian). It follows the
 conventions of the sister package `fastsae` (github.com/ridsonap/fastsae).
@@ -60,8 +60,12 @@ Scripts in `benchmarks/` use the **installed** package, not `load_all()`.
 - `R/mse_bootstrap.R`: `.pboot_mse()`, naive parametric bootstrap; the model passes a `refit()` closure.
 - `R/fh_lm.R`: `.fit_fh_lm()`, linear Fay-Herriot with one variance component by profile REML/ML
   (grid + `optimize()`), used by `merf_sae()` because mgcv is O(D^3) per fit (check S5).
-- `R/merf_sae.R`: `merf_sae()`, `.merf_fit()` (one fit, reused per bootstrap replicate),
+- `R/merf_sae.R`: `merf_sae()`, `.merf_fit()` (one fit with a `learner`, shared with `boost_sae()`, reused per bootstrap replicate),
   `.fhrf_combine()` (EBLUP step, eqs. 10/14 of Bukhari et al. 2026), `.fit_rf()` (ranger, OOB).
+- `R/boost_sae.R`: `boost_sae()` (experimental, own area-level adaptation; xgboost in Suggests),
+  `.fit_boost()` (cross-fitted predictions for sampled areas: an area never sees its own target),
+  `.boost_nrounds()` (xgb.cv), `.boost_matrix()`. It reuses `.merf_fit(learner = )`; keep `merf_sae()`
+  identical to `tests/testthat/fixtures/merf_reference.rds`.
 - `R/scfh_sae.R`: `scfh_sae()` (experimental, Maranzano et al. 2026 preprint), `.scfh_fit()` (one fit,
   reused per bootstrap replicate: k-means start, AREML per cluster, ICM label sweeps), `.label_unsampled()`
   (own extension, SCFH-1), `.align_labels()`, `.adjusted_rand()`. Keep `K = 1` equal to `sae::eblupFH`

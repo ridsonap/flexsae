@@ -30,6 +30,9 @@ Available:
 - `merf_sae()`: Fay-Herriot model with a random forest for the fixed part
   (replacing or correcting the linear predictor), with parametric bootstrap
   MSE.
+- `boost_sae()` (experimental): Fay-Herriot model with gradient boosting
+  (XGBoost) for the fixed part, with cross-fitted predictions and parametric
+  bootstrap MSE.
 - `scfh_sae()` (experimental): spatially clustered Fay-Herriot model, where
   neighbouring areas tend to share a regime with its own coefficients, with a
   bootstrap MSE that reruns the clustering.

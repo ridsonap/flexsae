@@ -2,6 +2,7 @@
   switch(model,
     pspline_sae = "Semiparametric Fay-Herriot model with penalized splines",
     merf_sae = "Fay-Herriot model with a random forest",
+    boost_sae = "Fay-Herriot model with gradient boosting (experimental)",
     scfh_sae = "Spatially clustered Fay-Herriot model (experimental)",
     model
   )
@@ -60,7 +61,8 @@ print.flexsae <- function(x, digits = max(3L, getOption("digits") - 3L), ...) {
   cat(.model_label(x$model), "\n", sep = "")
   if (!is.null(x$variant)) {
     cat("Variant: ", x$variant, ", algorithm: ", x$algorithm, sep = "")
-    if (identical(x$algorithm, "merf")) cat(" (", x$iterations, " iterations)", sep = "")
+    if (x$algorithm %in% c("merf", "iterative")) cat(" (", x$iterations, " iterations)", sep = "")
+    if (!is.null(x$boost_args)) cat(", ", x$boost_args$nrounds, " boosting rounds", sep = "")
     cat("\n")
   }
   cat("Method: ", x$method, "\n", sep = "")
