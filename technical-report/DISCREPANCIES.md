@@ -4,7 +4,7 @@ Aturan (pola fastsae): **kode adalah sumber kebenaran.** Setiap penyimpangan yan
 dari makalah rujukan atau package pembanding dicatat di sini, di roxygen `@details`, dan di
 `NEWS.md`, beserta alasannya. Butir yang belum dipastikan ditandai **TIDAK PASTI**.
 
-Status (28 Okt 2026): `pspline_sae()` dan `merf_sae()` sudah ada.
+Status (28 Okt 2026): `pspline_sae()`, `merf_sae()` dan `benchmark_flexsae()` sudah ada.
 
 ## Penyimpangan
 
@@ -15,6 +15,10 @@ Status (28 Okt 2026): `pspline_sae()` dan `merf_sae()` sudah ada.
 | MERF-3 | `merf_sae(algorithm = "merf")` | Hajjem dkk. (2014); Krennmair & Schmid (2022) | Iterasi RF ↔ FH berofset untuk area-level: adaptasi sendiri, tidak ada di paper mana pun. Kriteria henti hanya pada σ²ᵥ. | Pada `"fhrf"`, σ̂²ᵥ FH linear juga menyerap non-linearitas yang tidak tertangkap (D = 300: 0,430 vs 0,311 setelah iterasi). Eksperimental; dievaluasi di simulasi fase 5. |
 | MERF-4 | `merf_sae()` | Bukhari dkk. (2026) | RF memakai variabel RHS formula tanpa transformasi; FH linear memakai suku formula apa adanya. | Paper tidak membahas transformasi; transformasi monoton tidak mengubah RF. |
 | PSP-1 | `pspline_sae()` | Ruppert, Wand & Carroll (2003); Wand (2003) | Basis spline berpenalti mgcv (default thin-plate, opsi `"ps"`), bukan basis polinomial terpotong. | Struktur model dan estimand sama; engine REML mgcv (Wood 2011) teruji. |
+| BM-1 | `benchmark_flexsae(method = "optimal")` | `saebenchmarking::mse_benchmarking` | Dalam replikat bootstrap, bobot k_d memakai mse_d fit asli (tetap), bukan mse yang dihitung ulang per replikat. | MSE per replikat tidak tersedia tanpa bootstrap bersarang. Estimasi titik sama persis (3e-16). |
+| BM-2 | `benchmark_flexsae(method = "optimal")` | `emdi::benchmark(type = "MSE_adj")` | k_d ∝ a_d·mse_d (fastsae, saebenchmarking), bukan k_d ∝ mse_d (emdi). | Mengikuti dua package pembanding lain; perbedaan disebut di Rd. |
+| BM-3 | `benchmark_flexsae()` | PLAN §5.4 | Tidak ada MSE linearisasi; hanya bootstrap. | Bootstrap memakai replikat fit-ulang yang sudah ada; untuk difference identik dengan linearisasi bermomen bootstrap. |
+| BM-4 | `benchmark_flexsae(national_target = )` | Ghosh & Steorts (2013) | Dua tahap mengikuti algoritma `fastsae::benchmark_sae` (tahap 1 menyesuaikan target grup dengan aturan yang sama), bukan estimator Bayes dua-tahap Ghosh & Steorts. Target nasional dianggap diketahui eksak. | Konsisten dengan fastsae (selisih ≤ 2e-16); paper hanya [V-meta]. |
 
 ## Catatan verifikasi
 
@@ -85,3 +89,24 @@ terlalu menyebar. Ini sifat skema Bukhari dkk. pers. (15)–(17) bersama σ̂²�
 teridentifikasi. Yang perlu diuji di fase 5 (ADEMP dengan MCSE): (a) `algorithm = "merf"` (σ²ᵥ
 diestimasi ulang), (b) DGP linear (rasio seharusnya ≈ 1), (c) D lebih besar. Pilot ini tidak
 melaporkan MCSE dan tidak boleh dikutip sebagai hasil simulasi.
+
+### S7 — `benchmark_flexsae()` vs fastsae, emdi, saebenchmarking (28 Okt 2026)
+
+Aturan (vektor estimasi, 30 area, 3 grup; skrip di test `test_benchmark.R`):
+
+| Pembanding | Kasus | Selisih maks |
+|---|---|---|
+| `fastsae::benchmark_sae` | ratio, difference × mean/total × satu/banyak grup × dua tahap (dengan/tanpa target grup) | ≤ 2,2e-16 |
+| idem | logit | ≤ 2,2e-11 (fastsae `uniroot` tol 1e-9, flexsae 1e-12) |
+| `fastsae:::.benchmark_worker` | optimal dengan mse | 0 |
+| `saebenchmarking::sae_benchmarking` | optimum (phi_source = "mse") | 3,3e-16 |
+| `emdi::benchmark` | raking = difference, ratio | 2,2e-16 |
+
+MSE (milk, bobot N ~ Poisson(300), `pspline_sae` linear, B = 2000, target `"direct"`):
+
+| Metode | Rata-rata kenaikan MSE (ours, bootstrap) | Pembanding | MSE terbenchmark ours / saebenchmarking per area |
+|---|---|---|---|
+| difference | 0,000078 | g₄ Steorts & Ghosh (2013) via `saebenchmarking`: 0,000077 | median 0,972 [0,908; 1,027] |
+| ratio | 0,000084 | bootstrap `saebenchmarking` (B = 1000) | median 0,989 [0,912; 1,122] |
+
+Selisih level (~3%) berasal dari MSE dasar bootstrap vs Prasad-Rao (rasio 0,98 di fase 1), bukan dari benchmark.

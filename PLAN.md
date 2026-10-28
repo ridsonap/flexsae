@@ -213,6 +213,18 @@ $\sigma_v^2/\bar\psi$ (efek area besar menyamarkan sinyal kovariat). Skrip
 
 ## 5. Benchmarking
 
+> **Status 28 Okt 2026 (fase 3a selesai):** `benchmark_flexsae()` post-hoc + MSE terbenchmark bootstrap
+> ada. Perubahan dari rancangan di bawah, setelah membaca kode `saebenchmarking` 0.1.0 dan `emdi` 2.2.3:
+> - MSE terbenchmark **hanya bootstrap**, dihitung dengan mem-benchmark ulang tiap replikat bootstrap model
+>   (replikat itu sudah fit ulang penuh; θ* dan y* kini disimpan di objek model). Rumus linearisasi §5.4
+>   dan dugaan $\mathrm{Cov}(e_d,\varepsilon_g) \approx w_d\gamma_d\psi_d$ **tidak dipakai**: semua suku diestimasi dari
+>   replikat. Untuk difference + target same-survey, kenaikan MSE bootstrap = g₄ Steorts & Ghosh (2013)
+>   dari `saebenchmarking` (0,000078 vs 0,000077 pada milk, B = 2000; DISCREPANCIES S7).
+> - Argumen: `target` numerik (tipe ii), `target` + `target_var` (tipe i eksternal), `target = "direct"`
+>   (tipe i same-survey). `target_type`/`target_source` dihapus (diturunkan dari argumen).
+> - **Self-benchmark (§5.3) ditunda ke fase 3b**: butirnya masih [dugaan] dan isi Wang, Fuller & Qu
+>   (2008) belum dibaca penuh.
+
 ### 5.1 Notasi
 
 Grup $g$; $w_d = N_d/\sum_{j\in g}N_j$ (`type = "mean"`) atau $w_d = N_d$ (`"total"`); galat $e = \hat\theta - \theta$,
@@ -330,7 +342,8 @@ rmarkdown, covr`. GPL (>= 3).
 | 0 ✅ | Repo publik, kerangka package, CI; spike S1 lulus | R CMD check bersih pada kerangka |
 | 1 ✅ | inti FH mgcv (`R/fh_gam.R`) + `pspline_sae()` (titik, bootstrap MSE, S3), E1 vs sae/fastsae/emdi | test hijau, check 0 ERROR/WARNING |
 | 2 ✅ | `merf_sae()` dua varian × dua algoritma + bootstrap MSE, E2–E3, pemecah FH cepat | idem |
-| 3 | `benchmark_flexsae()`, self-benchmark, MSE terbenchmark, E4–E6, tes properti | idem |
+| 3a ✅ | `benchmark_flexsae()` post-hoc, MSE terbenchmark bootstrap, E4–E6, tes properti | idem |
+| 3b | self-benchmark (WFQ) untuk `pspline_sae`/`merf_sae` setelah paper dibaca | idem |
 | 4 | `select_flexsae()`, importance, partial, `autoplot` | idem + validasi seleksi pilot |
 | 5 | Simulasi ADEMP (paket terinstal), vignette, pkgdown | tabel dengan MCSE, situs terbangun |
 | 6 | Rencana lanjutan §2.4 | – |

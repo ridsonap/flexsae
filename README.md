@@ -19,14 +19,18 @@ Available:
 - `pspline_sae()`: semiparametric Fay-Herriot model with penalized
   splines (fitted by REML or ML with ‘mgcv’), with parametric bootstrap
   MSE.
+
 - `merf_sae()`: Fay-Herriot model with a random forest for the fixed
   part (replacing or correcting the linear predictor), with parametric
   bootstrap MSE.
 
+- `benchmark_flexsae()`: benchmarking to aggregate targets (known,
+  estimated or the direct estimates of the same survey; by group or in
+  two stages), with the bootstrap MSE of the benchmarked estimates.
+
 Planned for the first release:
 
-- `select_flexsae()`, `benchmark_flexsae()` (benchmarking to aggregate
-  targets, including the MSE of the benchmarked estimates), and
+- `select_flexsae()`, self-benchmarking within the models, and
   `autoplot()` methods.
 
 Every method is checked against the linear Fay-Herriot model of the

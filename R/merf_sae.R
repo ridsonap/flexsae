@@ -95,7 +95,8 @@
 #'     `vcov`, `method`),
 #'     `formula`, `call`, `data`, `model`, `variant`, `algorithm`, `method`,
 #'     `iterations`, `mse_method`, `B`, `B_success`, `n_boot_failed`,
-#'     `boot_errors` (matrix of \eqn{\hat\theta^*_d - \theta^*_d}), `seed`,
+#'     `boot_errors` (matrix of \eqn{\hat\theta^*_d - \theta^*_d}), `boot_theta`
+#'     (\eqn{\theta^*_d}), `boot_y` (\eqn{y^*_d}), `seed`,
 #'     `conf_level` and `convergence`.
 #'
 #' @references
@@ -201,7 +202,7 @@ merf_sae <- function(
         "The search for the random effect variance did not converge."
       })
     }
-    boot <- list(mse = rep(NA_real_, nrow(data)), B_success = NA_integer_, n_failed = NA_integer_, errors = NULL)
+    boot <- list(mse = rep(NA_real_, nrow(data)), B_success = NA_integer_, n_failed = NA_integer_, errors = NULL, theta = NULL, y = NULL)
     if (mse == "bootstrap") {
       refit <- function(y_star) fit_once(y_star)$est
       boot <- .pboot_mse(res$synthetic, res$sigma2_v, ad$vardir, ad$sampled, refit, B)
@@ -235,6 +236,8 @@ merf_sae <- function(
       B_success = boot$B_success,
       n_boot_failed = boot$n_failed,
       boot_errors = boot$errors,
+      boot_theta = boot$theta,
+      boot_y = boot$y,
       seed = seed,
       conf_level = conf_level,
       convergence = res$converged

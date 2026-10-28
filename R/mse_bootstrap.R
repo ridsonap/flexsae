@@ -11,13 +11,14 @@
 #' @param refit Function of the bootstrap response (NA for unsampled areas)
 #'   returning the estimates of all areas.
 #' @param B Number of replicates.
-#' @return List with `mse`, `B_success`, `n_failed` and `errors` (D x B matrix
-#'   of est* - theta*, kept for benchmarking and plots).
+#' @return List with `mse`, `B_success`, `n_failed`, `errors` (D x B matrix
+#'   of est* - theta*), `theta` (theta*) and `y` (y*, NA for unsampled areas);
+#'   the matrices are kept for benchmarking and plots.
 #' @noRd
 .pboot_mse <- function(synthetic, sigma2_v, vardir, sampled, refit, B) {
   D <- length(synthetic)
   n_s <- sum(sampled)
-  errors <- matrix(NA_real_, D, B)
+  errors <- theta_m <- y_m <- matrix(NA_real_, D, B)
   b <- 0L
   attempts <- 0L
   while (b < B && attempts < 5L * B) {
@@ -29,18 +30,25 @@
     if (is.null(est) || anyNA(est)) next
     b <- b + 1L
     errors[, b] <- est - theta
+    theta_m[, b] <- theta
+    y_m[, b] <- y_star
   }
   if (b < B) {
     cli::cli_warn(c(
       "Only {b} of {B} bootstrap replicates could be fitted ({attempts} attempts).",
       "i" = "The MSE is averaged over the successful replicates."
     ))
-    errors <- errors[, seq_len(b), drop = FALSE]
+    keep <- seq_len(b)
+    errors <- errors[, keep, drop = FALSE]
+    theta_m <- theta_m[, keep, drop = FALSE]
+    y_m <- y_m[, keep, drop = FALSE]
   }
   list(
     mse = if (b > 0) rowMeans(errors^2) else rep(NA_real_, D),
     B_success = b,
     n_failed = attempts - b,
-    errors = errors
+    errors = errors,
+    theta = theta_m,
+    y = y_m
   )
 }

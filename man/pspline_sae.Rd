@@ -59,7 +59,8 @@ An object of class \code{c("flexsae_pspline", "flexsae")}: a list with
 approximate tests from \code{\link[mgcv:summary.gam]{mgcv::summary.gam()}}).
 \item \code{sigma2_v}, \code{fit} (the \code{\link[mgcv:gam]{mgcv::gam()}} object), \code{formula}, \code{call}, \code{data},
 \code{model}, \code{method}, \code{mse_method}, \code{B}, \code{B_success}, \code{n_boot_failed},
-\code{boot_errors} (matrix of \eqn{\hat\theta^*_d - \theta^*_d}), \code{seed},
+\code{boot_errors} (matrix of \eqn{\hat\theta^*_d - \theta^*_d}), \code{boot_theta}
+(\eqn{\theta^*_d}), \code{boot_y} (\eqn{y^*_d}), \code{seed},
 \code{conf_level} and \code{convergence}.
 }
 }

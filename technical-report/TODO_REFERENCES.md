@@ -95,6 +95,6 @@ DOI dari ingatan saya yang **salah** (diperbaiki lewat pencarian Crossref):
 | `flexsae` | **Belum ada** di CRAN (halaman 404, tidak ada arsip) | Nama tersedia |
 | `SAEforest` | **Diarsipkan** 2023-08-10 ("issues were not corrected in time"), versi terakhir 1.0.0 | Hanya untuk skrip `benchmarks/` dan fixture; tidak boleh di Suggests |
 | `nlfh` 0.1.0 (P. Parker, 2026-06-12) | Di CRAN, berbasis `dbarts` | Pembanding BART-FH area-level |
-| `saebenchmarking` (2026-09-28) | Di CRAN | Pembanding MSE terbenchmark FH (Steorts & Ghosh 2013) |
+| `saebenchmarking` 0.1.0 (2026-09-28; Sihombing & Ubaidillah) | Di CRAN, terpasang 28 Okt 2026; kode `sae_benchmarking`, `mse_benchmarking`, `.mse_eblup_difference`, `.mse_eblup_bootstrap` dibaca | Pembanding E6 (DISCREPANCIES S7). Rumus g₄ diambil dari kodenya, bukan dari teks Steorts & Ghosh (2013), yang tetap [V-meta]. |
 | `saekernel` 0.1.1 | Di CRAN (email maintainer tidak terkirim) | FH Nadaraya–Watson; rujukannya tidak diverifikasi, tidak dipakai |
 | `sae` 1.3, `emdi` 2.2.3, `mgcv` 1.9-4, `ranger` 0.18.0, `dbarts` 0.9-33 | Terpasang lokal | Pembanding/engine |

@@ -60,4 +60,7 @@ Scripts in `benchmarks/` use the **installed** package, not `load_all()`.
   (grid + `optimize()`), used by `merf_sae()` because mgcv is O(D^3) per fit (check S5).
 - `R/merf_sae.R`: `merf_sae()`, `.merf_fit()` (one fit, reused per bootstrap replicate),
   `.fhrf_combine()` (EBLUP step, eqs. 10/14 of Bukhari et al. 2026), `.fit_rf()` (ranger, OOB).
+- `R/benchmark.R`: `benchmark_flexsae()` (S3: `flexsae`, numeric default), `.benchmark_core()`,
+  `.bm_rule()` (rules follow fastsae's `.benchmark_worker`). The MSE re-benchmarks the stored model
+  bootstrap replicates (`boot_errors`, `boot_theta`, `boot_y`); keep those fields in every model.
 - `R/pspline_sae.R`, `R/methods.R` (print/summary/coef/fitted/residuals), `R/utils.R`.

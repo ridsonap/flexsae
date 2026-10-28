@@ -85,7 +85,8 @@ predictor (\code{"correct"}); no rows for \code{"replace"}.
 \code{vcov}, \code{method}),
 \code{formula}, \code{call}, \code{data}, \code{model}, \code{variant}, \code{algorithm}, \code{method},
 \code{iterations}, \code{mse_method}, \code{B}, \code{B_success}, \code{n_boot_failed},
-\code{boot_errors} (matrix of \eqn{\hat\theta^*_d - \theta^*_d}), \code{seed},
+\code{boot_errors} (matrix of \eqn{\hat\theta^*_d - \theta^*_d}), \code{boot_theta}
+(\eqn{\theta^*_d}), \code{boot_y} (\eqn{y^*_d}), \code{seed},
 \code{conf_level} and \code{convergence}.
 }
 }
