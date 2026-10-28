@@ -25,15 +25,19 @@ covariates act non-linearly.
 Available:
 
 - `pspline_sae()`: semiparametric Fay-Herriot model with penalized splines
-  (fitted by REML or ML with 'mgcv'), with parametric bootstrap MSE.
+  (fitted by REML or ML with 'mgcv'), with parametric bootstrap MSE and
+  optional self-benchmarking to the direct estimates.
 - `merf_sae()`: Fay-Herriot model with a random forest for the fixed part
   (replacing or correcting the linear predictor), with parametric bootstrap
   MSE.
 
+- `benchmark_flexsae()`: benchmarking to aggregate targets (known, estimated
+  or the direct estimates of the same survey; by group or in two stages), with
+  the bootstrap MSE of the benchmarked estimates.
+
 Planned for the first release:
 
-- `select_flexsae()`, `benchmark_flexsae()` (benchmarking to aggregate targets,
-  including the MSE of the benchmarked estimates), and `autoplot()` methods.
+- `select_flexsae()` and `autoplot()` methods.
 
 Every method is checked against the linear Fay-Herriot model of the `sae`,
 `emdi` and `fastsae` packages, and in simulation studies that also report the

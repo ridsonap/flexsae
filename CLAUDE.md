@@ -27,6 +27,7 @@ Scripts in `benchmarks/` use the **installed** package, not `load_all()`.
 - Naming: model functions `*_sae` (`pspline_sae`, `merf_sae`); utilities `*_flexsae`
   (`benchmark_flexsae`, `select_flexsae`, ...) so they do not mask fastsae's `benchmark_sae`,
   `step_sae`, `compare_sae`, `map_sae`.
+- Internal column names start with `.flexsae_`; user data may not use that prefix.
 - One result class: `c("flexsae_<model>", "flexsae")` with a `df_est` table of fixed columns
   (`domain, direct, vardir, est, synthetic, random_effect, gamma, mse, rse, ci_lower, ci_upper, sampled`); columns that do not
   apply are `NA`, never dropped. Shared S3 methods work on that shape.
@@ -60,4 +61,9 @@ Scripts in `benchmarks/` use the **installed** package, not `load_all()`.
   (grid + `optimize()`), used by `merf_sae()` because mgcv is O(D^3) per fit (check S5).
 - `R/merf_sae.R`: `merf_sae()`, `.merf_fit()` (one fit, reused per bootstrap replicate),
   `.fhrf_combine()` (EBLUP step, eqs. 10/14 of Bukhari et al. 2026), `.fit_rf()` (ranger, OOB).
+- `R/benchmark.R`: `benchmark_flexsae()` (S3: `flexsae`, numeric default), `.benchmark_core()`,
+  `.bm_rule()` (rules follow fastsae's `.benchmark_worker`). The MSE re-benchmarks the stored model
+  bootstrap replicates (`boot_errors`, `boot_theta`, `boot_y`); keep those fields in every model.
+- `R/self_benchmark.R`: `.self_benchmark_cols()` (z_d = w_d * vardir_d by group, Wang-Fuller-Qu
+  eq. 23) and `.check_self_benchmark()`; used by both models through `bench_weight`/`bench_group`.
 - `R/pspline_sae.R`, `R/methods.R` (print/summary/coef/fitted/residuals), `R/utils.R`.

@@ -10,6 +10,8 @@ pspline_sae(
   domain = NULL,
   data,
   method = c("REML", "ML"),
+  bench_weight = NULL,
+  bench_group = NULL,
   mse = c("bootstrap", "none"),
   B = 200,
   seed = NULL,
@@ -37,6 +39,14 @@ covariate values.}
 \item{method}{Estimation method of the variance components and smoothing
 parameters: \code{"REML"} (default) or \code{"ML"}.}
 
+\item{bench_weight}{Optional weights \eqn{w_d} for self-benchmarking (a
+column name, a one-sided formula or a vector): the model is augmented so
+that \eqn{\sum_d w_d\hat\theta_d = \sum_d w_d y_d} over the sampled areas
+(see Details). Only the relative sizes of the weights matter.}
+
+\item{bench_group}{Optional groups for self-benchmarking, given like
+\code{bench_weight}; the restriction then holds within each group.}
+
 \item{mse}{\code{"bootstrap"} (default) for the parametric bootstrap MSE, or
 \code{"none"}.}
 
@@ -58,8 +68,9 @@ An object of class \code{c("flexsae_pspline", "flexsae")}: a list with
 \item \code{smooth}: table of the smooth terms (effective degrees of freedom and
 approximate tests from \code{\link[mgcv:summary.gam]{mgcv::summary.gam()}}).
 \item \code{sigma2_v}, \code{fit} (the \code{\link[mgcv:gam]{mgcv::gam()}} object), \code{formula}, \code{call}, \code{data},
-\code{model}, \code{method}, \code{mse_method}, \code{B}, \code{B_success}, \code{n_boot_failed},
-\code{boot_errors} (matrix of \eqn{\hat\theta^*_d - \theta^*_d}), \code{seed},
+\code{model}, \code{method}, \code{self_benchmark} (logical), \code{mse_method}, \code{B}, \code{B_success}, \code{n_boot_failed},
+\code{boot_errors} (matrix of \eqn{\hat\theta^*_d - \theta^*_d}), \code{boot_theta}
+(\eqn{\theta^*_d}), \code{boot_y} (\eqn{y^*_d}), \code{seed},
 \code{conf_level} and \code{convergence}.
 }
 }
@@ -94,6 +105,16 @@ the fitted fixed and smooth part (column \code{synthetic}) and
 \eqn{\hat v_d = \gamma_d\{y_d - \hat m(x_d)\}} with
 \eqn{\gamma_d = \hat\sigma^2_v/(\hat\sigma^2_v + \psi_d)}. Unsampled areas get
 \eqn{\hat v_d = 0}.
+
+\strong{Self-benchmarking.} With \code{bench_weight}, the covariate
+\eqn{z_d = w_d\psi_d} (one per group with \code{bench_group}, zero for unsampled
+areas) is added as an unpenalized term (the augmented model of Wang, Fuller
+and Qu, 2008, eq. 23). The mixed model equations then give
+\eqn{\sum_d w_d(y_d - \hat\theta_d) = 0} over the sampled areas of each group,
+whatever the smoothing parameters, so the estimates agree with the weighted
+aggregate of the direct estimates without a post-hoc adjustment. The
+bootstrap refits the augmented model, so the MSE includes the augmentation.
+Its coefficients are reported as \verb{bench(<group>)}.
 
 \strong{MSE.} Naive parametric bootstrap: for \eqn{b = 1, \dots, B},
 \eqn{\theta^*_d = \hat m(x_d) + v^*_d} with \eqn{v^*_d \sim N(0, \hat\sigma^2_v)} and
@@ -132,6 +153,9 @@ American Statistical Association}, 74(366a), 269-277.
 Hall, P. and Maiti, T. (2006). On parametric bootstrap methods for small area
 prediction. \emph{Journal of the Royal Statistical Society Series B}, 68(2),
 221-238. \doi{10.1111/j.1467-9868.2006.00541.x}
+
+Wang, J., Fuller, W. A. and Qu, Y. (2008). Small area estimation under a
+restriction. \emph{Survey Methodology}, 34(1), 29-36.
 
 Ruppert, D., Wand, M. P. and Carroll, R. J. (2003). \emph{Semiparametric
 Regression}. Cambridge University Press. \doi{10.1017/CBO9780511755453}

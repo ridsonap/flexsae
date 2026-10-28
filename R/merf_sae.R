@@ -25,6 +25,8 @@
 #' @param num.trees,mtry,min.node.size Passed to [ranger::ranger()]. `mtry =
 #'   NULL` uses the ranger default (the square root of the number of
 #'   covariates, rounded down).
+#' @param bench_weight,bench_group Optional self-benchmarking weights and
+#'   groups, as in [pspline_sae()] (see Details).
 #' @param maxit,tol For `algorithm = "merf"`: maximum number of iterations and
 #'   convergence tolerance (see Details).
 #'
@@ -74,6 +76,16 @@
 #' the direct estimates. Every sampled area must be out of bag in at least one
 #' tree, which needs enough trees.
 #'
+#' **Self-benchmarking.** With `bench_weight`, the final EBLUP step uses the
+#' fixed part \eqn{\hat m_d + z_d^\prime\hat\alpha}, with \eqn{z_d = w_d\psi_d} (one
+#' column per group of `bench_group`, zero for unsampled areas) and
+#' \eqn{\hat\alpha} the generalized least squares coefficient of
+#' \eqn{y_d - \hat m_d} on \eqn{z_d} with variances \eqn{\hat\sigma^2_v + \psi_d}. As in
+#' the augmented model of Wang, Fuller and Qu (2008, eq. 23), this gives
+#' \eqn{\sum_d w_d(y_d - \hat\theta_d) = 0} over the sampled areas of each group.
+#' Applying the augmentation to the step with the forest as an offset is our
+#' extension; it is not in Bukhari et al. (2026).
+#'
 #' **MSE.** Naive parametric bootstrap (Bukhari et al., 2026, eqs. 15-17):
 #' \eqn{\theta^*_d = \hat m_d + v^*_d}, \eqn{y^*_d = \theta^*_d + e^*_d}, the whole
 #' algorithm, forest included, is refitted on \eqn{y^*} and
@@ -89,13 +101,16 @@
 #'     `synthetic`, `random_effect`, `gamma`, `mse`, `rse` (\%), `ci_lower`,
 #'     `ci_upper` and `sampled`. MSE columns are `NA` when `mse = "none"`.
 #'   * `coefficients`: table of the coefficients of the linear part of the final
-#'     predictor (`"correct"`); no rows for `"replace"`.
+#'     predictor (`"correct"`; no rows for `"replace"`), plus the
+#'     self-benchmarking coefficients `bench(<group>)`.
 #'   * `rf`: the [ranger::ranger()] fit of the final forest.
 #'   * `sigma2_v`, `fit` (the last linear Fay-Herriot fit: `sigma2_v`, `beta`,
 #'     `vcov`, `method`),
 #'     `formula`, `call`, `data`, `model`, `variant`, `algorithm`, `method`,
+#'     `self_benchmark` (logical),
 #'     `iterations`, `mse_method`, `B`, `B_success`, `n_boot_failed`,
-#'     `boot_errors` (matrix of \eqn{\hat\theta^*_d - \theta^*_d}), `seed`,
+#'     `boot_errors` (matrix of \eqn{\hat\theta^*_d - \theta^*_d}), `boot_theta`
+#'     (\eqn{\theta^*_d}), `boot_y` (\eqn{y^*_d}), `seed`,
 #'     `conf_level` and `convergence`.
 #'
 #' @references
@@ -119,6 +134,9 @@
 #' Krennmair, P. and Schmid, T. (2022). Flexible domain prediction using mixed
 #' effects random forests. *Journal of the Royal Statistical Society Series C*,
 #' 71(5), 1865-1894. \doi{10.1111/rssc.12600}
+#'
+#' Wang, J., Fuller, W. A. and Qu, Y. (2008). Small area estimation under a
+#' restriction. *Survey Methodology*, 34(1), 29-36.
 #'
 #' Wright, M. N. and Ziegler, A. (2017). ranger: a fast implementation of
 #' random forests for high dimensional data in C++ and R. *Journal of
@@ -149,6 +167,8 @@ merf_sae <- function(
   num.trees = 500,
   mtry = NULL,
   min.node.size = 5,
+  bench_weight = NULL,
+  bench_group = NULL,
   maxit = 25,
   tol = 1e-3,
   mse = c("bootstrap", "none"),
@@ -187,13 +207,15 @@ merf_sae <- function(
   rf_x[] <- lapply(rf_x, function(v) if (is.character(v)) factor(v) else v)
   rf_args <- list(num.trees = num.trees, mtry = mtry, min.node.size = min.node.size)
   X <- .design_matrix(formula, data)
+  sb <- .self_benchmark_cols(bench_weight, bench_group, data, ad$vardir, ad$sampled)
 
   fit_once <- function(y) {
-    .merf_fit(y, X, rf_x, ad$vardir, ad$sampled, variant, algorithm, method, rf_args, maxit, tol)
+    .merf_fit(y, X, rf_x, ad$vardir, ad$sampled, variant, algorithm, method, rf_args, maxit, tol, sb$Z)
   }
 
   .with_seed(seed, {
     res <- fit_once(ad$y)
+    if (!is.null(sb)) .check_self_benchmark(sb, ad$y, res$est, ad$sampled)
     if (!res$converged) {
       cli::cli_warn(if (algorithm == "merf" && res$iterations >= maxit) {
         "The {.val merf} algorithm did not converge in {maxit} iteration{?s}."
@@ -201,7 +223,7 @@ merf_sae <- function(
         "The search for the random effect variance did not converge."
       })
     }
-    boot <- list(mse = rep(NA_real_, nrow(data)), B_success = NA_integer_, n_failed = NA_integer_, errors = NULL)
+    boot <- list(mse = rep(NA_real_, nrow(data)), B_success = NA_integer_, n_failed = NA_integer_, errors = NULL, theta = NULL, y = NULL)
     if (mse == "bootstrap") {
       refit <- function(y_star) fit_once(y_star)$est
       boot <- .pboot_mse(res$synthetic, res$sigma2_v, ad$vardir, ad$sampled, refit, B)
@@ -210,6 +232,7 @@ merf_sae <- function(
 
   fh <- res$fh
   coefficients <- if (variant == "correct") fh$coefficients else fh$coefficients[0, , drop = FALSE]
+  if (!is.null(sb)) coefficients <- rbind(coefficients, .rename_bench_rows(res$bench, sb))
 
   structure(
     list(
@@ -229,12 +252,15 @@ merf_sae <- function(
       variant = variant,
       algorithm = algorithm,
       method = method,
+      self_benchmark = !is.null(sb),
       iterations = res$iterations,
       mse_method = mse,
       B = if (mse == "bootstrap") as.integer(B) else NA_integer_,
       B_success = boot$B_success,
       n_boot_failed = boot$n_failed,
       boot_errors = boot$errors,
+      boot_theta = boot$theta,
+      boot_y = boot$y,
       seed = seed,
       conf_level = conf_level,
       convergence = res$converged
@@ -250,10 +276,13 @@ merf_sae <- function(
 #' @param y Response of all areas (NA for unsampled).
 #' @param X Design matrix of the linear terms, all areas.
 #' @param rf_x Forest covariates of all areas.
+#' @param Z Optional self-benchmarking columns (all areas).
 #' @return List with `est`, `synthetic`, `random_effect`, `gamma`, `sigma2_v`,
-#'   `fh` (last linear Fay-Herriot fit), `rf`, `iterations` and `converged`.
+#'   `fh` (last linear Fay-Herriot fit), `rf`, `iterations`, `converged` and
+#'   `bench` (table of the self-benchmarking coefficients, or NULL).
 #' @noRd
-.merf_fit <- function(y, X, rf_x, vardir, sampled, variant, algorithm, method, rf_args, maxit, tol) {
+.merf_fit <- function(y, X, rf_x, vardir, sampled, variant, algorithm, method, rf_args, maxit, tol,
+                      Z = NULL) {
   ys <- y[sampled]
   Xs <- X[sampled, , drop = FALSE]
   vs <- vardir[sampled]
@@ -295,8 +324,25 @@ merf_sae <- function(
     }
   }
 
+  bench <- NULL
+  if (!is.null(Z)) {
+    # augmented EBLUP step (Wang, Fuller and Qu, 2008, eq. 23) with offset fixed
+    Zs <- Z[sampled, , drop = FALSE]
+    vi <- 1 / (fh$sigma2_v + vs)
+    A <- crossprod(Zs, vi * Zs)
+    alpha <- tryCatch(solve(A, crossprod(Zs, vi * (ys - fixed[sampled]))), error = function(e) {
+      cli::cli_abort("The self-benchmarking columns are singular.", call = NULL)
+    })
+    fixed <- fixed + drop(Z %*% alpha)
+    se <- sqrt(diag(solve(A)))
+    zval <- drop(alpha) / se
+    bench <- data.frame(Estimate = drop(alpha), `Std. Error` = se, `z value` = zval,
+                        `Pr(>|z|)` = 2 * stats::pnorm(-abs(zval)), check.names = FALSE,
+                        row.names = colnames(Z))
+  }
+
   .fhrf_combine(fixed, y, fh$sigma2_v, vardir, sampled,
-                list(fh = fh, rf = rf$fit, iterations = iterations, converged = converged))
+                list(fh = fh, rf = rf$fit, iterations = iterations, converged = converged, bench = bench))
 }
 
 #' EBLUP step of Bukhari et al. (2026), eqs. (10) and (14)

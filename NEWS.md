@@ -17,6 +17,21 @@
   random effect variance directly instead of using 'mgcv': about 400 times
   faster at 300 areas (0.006 s vs 2.6 s per fit), and it agrees with
   `sae::eblupFH()` to about 1e-7.
+* New `benchmark_flexsae()`: ratio, difference, optimal and logit
+  benchmarking to known, estimated (`target_var`) or same-survey direct
+  (`target = "direct"`) targets, by group and in two stages
+  (`national_target`), with the MSE of the benchmarked estimates from the model
+  bootstrap (each replicate benchmarked to its bootstrap target). The rules
+  agree with 'fastsae', 'emdi' and 'saebenchmarking'; the MSE increase of
+  difference benchmarking agrees with Steorts and Ghosh (2013).
+* Self-benchmarking in `pspline_sae()` and `merf_sae()` (`bench_weight`,
+  `bench_group`): the augmented model of Wang, Fuller and Qu (2008, eq. 23)
+  makes the weighted aggregate of the estimates equal that of the direct
+  estimates over the sampled areas, by group, without a post-hoc adjustment.
+  For `merf_sae()` the augmentation is applied in the final EBLUP step with the
+  forest as an offset, an extension not in Bukhari et al. (2026).
+* Model objects keep the bootstrap truth and direct estimates of every
+  replicate (`boot_theta`, `boot_y`).
 * `print()`, `summary()`, `coef()`, `fitted()` and `residuals()` methods for
   the common `"flexsae"` result class.
 * Package skeleton, plan (`PLAN.md`) and verified references

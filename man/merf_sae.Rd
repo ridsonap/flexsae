@@ -15,6 +15,8 @@ merf_sae(
   num.trees = 500,
   mtry = NULL,
   min.node.size = 5,
+  bench_weight = NULL,
+  bench_group = NULL,
   maxit = 25,
   tol = 0.001,
   mse = c("bootstrap", "none"),
@@ -58,6 +60,9 @@ and Krennmair and Schmid, 2022; see Details).}
 \item{num.trees, mtry, min.node.size}{Passed to \code{\link[ranger:ranger]{ranger::ranger()}}. \code{mtry = NULL} uses the ranger default (the square root of the number of
 covariates, rounded down).}
 
+\item{bench_weight, bench_group}{Optional self-benchmarking weights and
+groups, as in \code{\link[=pspline_sae]{pspline_sae()}} (see Details).}
+
 \item{maxit, tol}{For \code{algorithm = "merf"}: maximum number of iterations and
 convergence tolerance (see Details).}
 
@@ -79,13 +84,16 @@ An object of class \code{c("flexsae_merf", "flexsae")}: a list with
 \code{synthetic}, \code{random_effect}, \code{gamma}, \code{mse}, \code{rse} (\\%), \code{ci_lower},
 \code{ci_upper} and \code{sampled}. MSE columns are \code{NA} when \code{mse = "none"}.
 \item \code{coefficients}: table of the coefficients of the linear part of the final
-predictor (\code{"correct"}); no rows for \code{"replace"}.
+predictor (\code{"correct"}; no rows for \code{"replace"}), plus the
+self-benchmarking coefficients \verb{bench(<group>)}.
 \item \code{rf}: the \code{\link[ranger:ranger]{ranger::ranger()}} fit of the final forest.
 \item \code{sigma2_v}, \code{fit} (the last linear Fay-Herriot fit: \code{sigma2_v}, \code{beta},
 \code{vcov}, \code{method}),
 \code{formula}, \code{call}, \code{data}, \code{model}, \code{variant}, \code{algorithm}, \code{method},
+\code{self_benchmark} (logical),
 \code{iterations}, \code{mse_method}, \code{B}, \code{B_success}, \code{n_boot_failed},
-\code{boot_errors} (matrix of \eqn{\hat\theta^*_d - \theta^*_d}), \code{seed},
+\code{boot_errors} (matrix of \eqn{\hat\theta^*_d - \theta^*_d}), \code{boot_theta}
+(\eqn{\theta^*_d}), \code{boot_y} (\eqn{y^*_d}), \code{seed},
 \code{conf_level} and \code{convergence}.
 }
 }
@@ -142,6 +150,16 @@ Out-of-bag predictions keep the forest from fitting the sampling errors of
 the direct estimates. Every sampled area must be out of bag in at least one
 tree, which needs enough trees.
 
+\strong{Self-benchmarking.} With \code{bench_weight}, the final EBLUP step uses the
+fixed part \eqn{\hat m_d + z_d^\prime\hat\alpha}, with \eqn{z_d = w_d\psi_d} (one
+column per group of \code{bench_group}, zero for unsampled areas) and
+\eqn{\hat\alpha} the generalized least squares coefficient of
+\eqn{y_d - \hat m_d} on \eqn{z_d} with variances \eqn{\hat\sigma^2_v + \psi_d}. As in
+the augmented model of Wang, Fuller and Qu (2008, eq. 23), this gives
+\eqn{\sum_d w_d(y_d - \hat\theta_d) = 0} over the sampled areas of each group.
+Applying the augmentation to the step with the forest as an offset is our
+extension; it is not in Bukhari et al. (2026).
+
 \strong{MSE.} Naive parametric bootstrap (Bukhari et al., 2026, eqs. 15-17):
 \eqn{\theta^*_d = \hat m_d + v^*_d}, \eqn{y^*_d = \theta^*_d + e^*_d}, the whole
 algorithm, forest included, is refitted on \eqn{y^*} and
@@ -187,6 +205,9 @@ Simulation}, 84(6), 1313-1328. \doi{10.1080/00949655.2012.741599}
 Krennmair, P. and Schmid, T. (2022). Flexible domain prediction using mixed
 effects random forests. \emph{Journal of the Royal Statistical Society Series C},
 71(5), 1865-1894. \doi{10.1111/rssc.12600}
+
+Wang, J., Fuller, W. A. and Qu, Y. (2008). Small area estimation under a
+restriction. \emph{Survey Methodology}, 34(1), 29-36.
 
 Wright, M. N. and Ziegler, A. (2017). ranger: a fast implementation of
 random forests for high dimensional data in C++ and R. \emph{Journal of
