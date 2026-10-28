@@ -11,8 +11,8 @@ Description: Small area estimation for area-level data when the relationship
     semiparametric Fay-Herriot model with penalized splines and a Fay-Herriot
     model combined with random forests, with bootstrap mean squared error
     estimation, selection of covariates, benchmarking to aggregate targets and
-    'ggplot2' visualizations. The package is under development and does not
-    yet export model functions.
+    'ggplot2' visualizations. The package is under development; the spline
+    model is available.
 License: GPL (>= 3)
 URL: https://github.com/ridsonap/flexsae
 BugReports: https://github.com/ridsonap/flexsae/issues
@@ -20,8 +20,17 @@ Encoding: UTF-8
 Language: en-US
 Depends:
     R (>= 4.1.0)
+Imports:
+    cli,
+    mgcv,
+    stats,
+    utils
 Suggests:
-    testthat (>= 3.0.0)
+    emdi,
+    fastsae,
+    sae,
+    testthat (>= 3.0.0),
+    withr
 Config/testthat/edition: 3
 Roxygen: list(markdown = TRUE)
 Config/roxygen2/version: 8.0.0

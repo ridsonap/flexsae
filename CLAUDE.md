@@ -28,7 +28,7 @@ Scripts in `benchmarks/` use the **installed** package, not `load_all()`.
   (`benchmark_flexsae`, `select_flexsae`, ...) so they do not mask fastsae's `benchmark_sae`,
   `step_sae`, `compare_sae`, `map_sae`.
 - One result class: `c("flexsae_<model>", "flexsae")` with a `df_est` table of fixed columns
-  (`domain, direct, vardir, est, mse, rse, ci_lower, ci_upper, sampled`); columns that do not
+  (`domain, direct, vardir, est, synthetic, random_effect, gamma, mse, rse, ci_lower, ci_upper, sampled`); columns that do not
   apply are `NA`, never dropped. Shared S3 methods work on that shape.
 - Validate inputs at the top of each function with `cli::cli_abort()`; non-convergence gives
   `convergence = FALSE` plus a warning.
@@ -45,4 +45,13 @@ Scripts in `benchmarks/` use the **installed** package, not `load_all()`.
   `technical-report/DISCREPANCIES.md`, roxygen `@details` and `NEWS.md`.
 - `mgcv::gam(y ~ ... + s(domain, bs = "re"), weights = 1/vardir, scale = 1, method = "REML")`
   reproduces `sae::eblupFH` REML (check S1 in `DISCREPANCIES.md`); the random effect variance is
-  `scale / sp`. Keep that agreement under test.
+  `scale / sp`. Keep that agreement under test. `emdi::fh` agrees only to ~1e-4 because of its
+  optimizer tolerance (check S2); do not tighten that test.
+
+## Code map
+
+- `R/area_data.R`: `.prepare_area_data()` validates the area-level input and builds the fitting data
+  (internal columns `.flexsae_y`, `.flexsae_area`, `.flexsae_w`).
+- `R/fh_gam.R`: `.fit_fh_gam()` / `.predict_fh_gam()`, the Fay-Herriot fit through mgcv shared by the models.
+- `R/mse_bootstrap.R`: `.pboot_mse()`, naive parametric bootstrap; the model passes a `refit()` closure.
+- `R/pspline_sae.R`, `R/methods.R` (print/summary/coef/fitted/residuals), `R/utils.R`.

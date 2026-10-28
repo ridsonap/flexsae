@@ -88,10 +88,15 @@ $y_d$ = NA, $x_d$ tersedia. Estimand: $\theta_d$.
   `method = "ML"` untuk seleksi.
 - **Prediktor.** $\hat\theta_d = \hat\beta_0 + \sum_k\hat f_k(x_{dk}) + x_d^{L\prime}\hat\beta + \hat v_d$; tak-sampel $\hat v_d = 0$
   (prediksi dengan `predict(..., exclude = "s(domain)")`).
-- **MSE.** Bootstrap parametrik (Butar & Lahiri 2003; González-Manteiga dkk. 2008; Hall & Maiti 2006 —
-  [V-meta]): $\theta^*_d = \hat m(x_d) + v^*_d$, $v^*_d \sim N(0,\hat\sigma_v^2)$, $y^*_d = \theta^*_d + e^*_d$, fit ulang
-  **termasuk parameter penghalus**, $\widehat{\mathrm{MSE}}_d = B^{-1}\sum_b(\hat\theta^*_d - \theta^*_d)^2$. Analitik
-  multi-komponen ditunda (rujukan umum belum diverifikasi).
+- **MSE.** Bootstrap parametrik naif (Hall & Maiti 2006 [V-meta, abstrak]; skema yang sama dengan
+  Bukhari dkk. 2026 pers. 15–17 [V]): $\theta^*_d = \hat m(x_d) + v^*_d$, $v^*_d \sim N(0,\hat\sigma_v^2)$, $y^*_d = \theta^*_d + e^*_d$,
+  fit ulang **termasuk parameter penghalus**, $\widehat{\mathrm{MSE}}_d = B^{-1}\sum_b(\hat\theta^*_d - \theta^*_d)^2$. Koreksi bias
+  (double bootstrap) Hall & Maiti belum diimplementasikan. Analitik multi-komponen ditunda.
+  *Koreksi 28 Okt 2026:* revisi sebelumnya menyebut González-Manteiga dkk. (2008, JSCS) — makalah itu
+  untuk model nested-error unit-level, bukan FH; Butar & Lahiri (2003) mengusulkan ukuran bootstrap
+  terkoreksi bias untuk model campuran umum, bukan skema naif ini. Keduanya tidak dikutip untuk `pspline_sae()`.
+  ✅ Fase 1: untuk FH linear, rata-rata MSE bootstrap / Prasad–Rao (`sae::mseFH`) = 0,98 pada `milk`, B = 400
+  (per area 0,85–1,16).
 - **Asumsi/risiko.** Normalitas $v_d$ dan $e_d$; $\psi_d$ benar; satu observasi per area membatasi
   fleksibilitas: basis `k` dibatasi menurut $D$ dan diuji di simulasi (perkiraan: kalah dari FH
   linear bila $D$ kecil dan $f$ linear).
@@ -297,7 +302,7 @@ data-raw/  benchmarks/  technical-report/  vignettes/
 ```
 
 Objek: kelas `c("flexsae_pspline" | "flexsae_merf", "flexsae")`; `df_est` (`domain, direct, vardir, est,
-mse, rse, ci_lower, ci_upper, sampled`), `fit`, `sigma2_v`, `formula`, `call`, `data`, `model`,
+synthetic, random_effect, gamma, mse, rse, ci_lower, ci_upper, sampled`), `fit`, `sigma2_v`, `formula`, `call`, `data`, `model`,
 `mse_method`, `B`, `seed`, `convergence`, `iterations`, `self_benchmark`. Kolom yang tidak berlaku = NA.
 
 DESCRIPTION target: Imports `cli, ggplot2, lifecycle, mgcv, ranger, rlang, stats, utils`; Suggests
@@ -311,7 +316,7 @@ rmarkdown, covr`. GPL (>= 3).
 | Fase | Isi | Selesai bila |
 |---|---|---|
 | 0 ✅ | Repo publik, kerangka package, CI; spike S1 lulus | R CMD check bersih pada kerangka |
-| 1 | `fh_offset` + `pspline_sae()` (titik, bootstrap MSE, S3), E1 | test hijau, check 0 ERROR/WARNING |
+| 1 ✅ | inti FH mgcv (`R/fh_gam.R`) + `pspline_sae()` (titik, bootstrap MSE, S3), E1 vs sae/fastsae/emdi | test hijau, check 0 ERROR/WARNING |
 | 2 | `merf_sae()` dua varian + bootstrap MSE, E2–E3 | idem |
 | 3 | `benchmark_flexsae()`, self-benchmark, MSE terbenchmark, E4–E6, tes properti | idem |
 | 4 | `select_flexsae()`, importance, partial, `autoplot` | idem + validasi seleksi pilot |

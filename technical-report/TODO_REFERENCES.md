@@ -78,7 +78,15 @@ DOI dari ingatan saya yang **salah** (diperbaiki lewat pencarian Crossref):
 - `steorts2013estimation`: Crossref tanpa volume/halaman; 23(2):749–767 dari situs Statistica Sinica.
 - Entri *Survey Methodology* (`wang2008small`, `you2013performance`, `stefan2021small`,
   `chambers2011bias`) tidak punya DOI; dicek di PDF StatCan.
-- `butar2003measures`: nama penulis mengikuti Crossref (`Butar, Ferry Butar`).
+- `butar2003measures`: nama penulis mengikuti Crossref (`Butar, Ferry Butar`). Abstrak (ScienceDirect):
+  ukuran ketidakpastian berbasis bootstrap yang ekspektasinya sama dengan risiko Bayes sampai O(m⁻¹),
+  untuk model campuran linear normal umum — **bukan** bootstrap naif yang dipakai `pspline_sae()`.
+- `gonzalez2008bootstrap` (JSCS 78(5)): halaman penerbit menyatakan model **nested-error unit-level**.
+  PLAN revisi sebelumnya keliru mengutipnya untuk bootstrap FH; sudah dikoreksi. Rujukan FH-nya
+  (multivariat) adalah González-Manteiga dkk. (2008) CSDA 52(12):5242–5252, doi 10.1016/j.csda.2008.04.031
+  — metadata Crossref ✓, belum masuk bib, isi belum dibaca.
+- `hall2006parametric`: abstrak (Crossref) dibaca — bootstrap parametrik umum untuk model dua level,
+  estimator MSE terkoreksi bias dan interval prediksi (double bootstrap).
 
 ## 5. Paket R terkait (bukan rujukan bibliografis, dicek di CRAN 28 Okt 2026)
 
