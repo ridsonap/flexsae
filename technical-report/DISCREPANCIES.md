@@ -155,3 +155,26 @@ Kesimpulan: arah dan besaran efek augmentasi direproduksi (Q turun pada model sa
   kovariat: ARI 0,29 vs 1,0 pada φ = 2 (lattice 10×10, seed 3). Dicatat di Rd; paper juga melaporkan
   kerugian over-penalization di atas φ ≈ 1,25 (Skenario 3).
 
+### S11 — pilot `scfh_sae()` pada desain Maranzano dkk. (2026), Skenario 1 (28 Okt 2026)
+
+Skrip `benchmarks/pilot/scfh_regimes.R` (paket dev via `load_all`, L'Ecuyer-CMRG, 2 core). Lattice 16×16
+(rook), tiga pita kolom (80/96/80 area), β₀ = 50/75/100, β₁ = −5/2/10, x ~ N(0, 4), pangsa R² 0,90/0,07/0,03
+dengan rekonstruksi varians SCFH-3, AREML, K = 3. **Pilot, bukan bukti final.**
+
+Bagian 1 (R = 200, MCSE ARI ≤ 0,026, RelRMSE ≤ 0,005); paper Tabel S2 (M = 1000, geografi Po Valley):
+
+| φ | ARI | share benar | RMSE relatif FH (K = 1) | admissible | Paper ARI / share / RelRMSE |
+|---|---|---|---|---|---|
+| 0 | 0,859 | 0,952 | 0,917 | 1,000 | 0,886 / 0,955 / 0,900 |
+| 0,25 | 0,929 | 0,975 | 0,891 | 1,000 | 0,958 / 0,979 / 0,872 |
+| 0,5 | 0,959 | 0,983 | 0,873 | 0,995 | 0,977 / 0,989 / 0,859 |
+| 1 | 0,955 | 0,973 | 0,866 | 0,965 | 0,917 / 0,938 / 0,867 |
+| 2 | 0,654 | 0,813 | 0,916 | 0,890 | 0,479 / 0,665 / 0,936 |
+
+Pola sama dengan paper (puncak di φ 0,5–1, over-penalization di φ = 2); ARI 1–3 poin lebih rendah pada φ ≤ 0,5,
+konsisten dengan geografi dan rekonstruksi varians yang berbeda.
+
+Bagian 2 (K = 3, φ = 0,5, R = 100, B = 100, 1,1 jam): rasio MSE bootstrap / MSE Monte Carlo per area
+median **1,00**, rasio rata-rata **0,985**, P10–P90 0,84–1,18; per rezim 1,01 / 0,99 / 0,98; semua replikat
+bootstrap berhasil. Paper (Tabel S16, Skenario 3, desain ketinggian): median 1,008, akurasi relatif 0,987.
+
