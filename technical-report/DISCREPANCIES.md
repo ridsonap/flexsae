@@ -4,7 +4,7 @@ Aturan (pola fastsae): **kode adalah sumber kebenaran.** Setiap penyimpangan yan
 dari makalah rujukan atau package pembanding dicatat di sini, di roxygen `@details`, dan di
 `NEWS.md`, beserta alasannya. Butir yang belum dipastikan ditandai **TIDAK PASTI**.
 
-Status (28 Okt 2026): `pspline_sae()`, `merf_sae()`, `benchmark_flexsae()` dan `scfh_sae()` (eksperimental) sudah ada.
+Status (28 Okt 2026): `pspline_sae()`, `merf_sae()`, `benchmark_flexsae()`, `scfh_sae()` dan `boost_sae()` (dua terakhir eksperimental) sudah ada; simulasi fase 5 (S9) selesai.
 
 ## Penyimpangan
 
@@ -144,6 +144,55 @@ tandanya berlawanan. Arah logis (negara besar z > 0, prediksi model A ditarik ke
 nilai positif, jadi **kemungkinan** konvensi tanda atau salah cetak di paper — tidak dipastikan.
 Satu dari 8000 fit memberi peringatan konvergensi mgcv ("step failed").
 Kesimpulan: arah dan besaran efek augmentasi direproduksi (Q turun pada model salah, naik ~2% pada model benar).
+
+### S9 — simulasi ADEMP fase 5 (28 Okt 2026)
+
+Skrip `benchmarks/simulation/` (paket terinstal, 10 proses paralel, L'Ecuyer-CMRG satu stream per replikat);
+ringkasan `inst/extdata/simulation.rds`, dilaporkan di vignette "Simulation study". Studi titik 24 skenario,
+R = 300; studi MSE 5 skenario (B, A1, A2, A2_D50, C), R = 200, B = 100. Tidak ada replikat gagal.
+
+Rasio MSE terhadap FH linear (`sae::eblupFH`, REML), area tersampel, MCSE ≤ 0,018:
+
+| Skenario | pspline | merf replace | merf correct | merf iteratif | BART-FH |
+|---|---|---|---|---|---|
+| B (linear) | 1,010 | 1,067 | 1,050 | 1,102 | 1,366 |
+| B_D30 / B_ratio0,25 | 1,032 / 1,024 | 1,127 / 1,395 | 1,066 / 1,378 | 1,113 / 1,346 | 1,279 / 1,914 |
+| A1 (kuadratik) | 0,801 | 0,933 | 0,934 | 0,876 | 1,011 |
+| A2 (sinus) | 0,905 | 0,950 | 0,957 | 0,956 | 1,206 |
+| A2_D30 / A2_ratio0,25 | 1,009 / 0,948 | 1,021 / 1,124 | 1,018 / 1,127 | 1,018 / 1,139 | 1,163 / 1,545 |
+| A3 (ambang) | 0,998 | 0,992 | 0,997 | 1,015 | 1,150 |
+| A4 (interaksi) | 0,975 | 0,951 | 0,954 | 0,922 | 0,992 |
+| A5 (Bukhari dkk. pers. 20) | 0,773 | 1,158 | 0,939 | 1,263 | 1,098 |
+| C (campuran + noise) | 0,817 | 0,961 | 0,968 | 0,995 | 0,991 |
+
+Hipotesis tercatat (PLAN §3.2):
+- **B (non-inferior, rasio ≤ 1,05):** terpenuhi oleh `pspline_sae` di semua variasi B (maks. 1,032, D = 30).
+  **Tidak terpenuhi** oleh `merf_sae`: `correct` 1,050 di dasar dan 1,055–1,378 di D30, psi5, t3, rasio 0,25;
+  `replace` dan iteratif lebih buruk.
+- **A (lebih baik dari FH linear):** `pspline` menang di A1, A2 (kecuali D30 dan λ = 0,5), A4, A5, C; seri di A3.
+  `merf` (fhrf) menang di A1, A2, A4, C; kalah di A2_D30, A2_λ0,5, A2_rasio0,25; `replace` kalah di A5.
+- **C:** keduanya lebih baik (0,817 / 0,961). Bagian "tidak memburuk karena noise" tidak diuji (tidak ada
+  skenario C tanpa noise).
+- Area tak-sampel: A2 pspline 0,804, merf 0,89–0,91; B merf 1,07–1,21 (kalah).
+
+MSE (studi MSE): bootstrap `pspline` RB median −0,048 s.d. −0,001, coverage 0,932–0,944 (MCSE ≤ 0,004:
+**sedikit di bawah 95%**); bootstrap `merf` RB median +0,06 s.d. +0,11 pada skenario non-linear dan ≈ 0 pada B,
+coverage 0,944–0,957 (konservatif); Prasad-Rao FH linear RB −0,012 s.d. +0,047, coverage 0,943–0,951; BART-FH C
+RB −0,20, coverage 0,892. Waktu rata-rata per fit dengan bootstrap (10 proses paralel): pspline 18–350 detik,
+merf 2–8 detik. Waktu FH linear dan BART-FH **tidak sebanding**: setiap replikat berjalan di fork baru
+(`mc.preschedule = FALSE`) dan namespace `sae`/`nlfh` dimuat di dalam pengukuran waktu (muat `sae` 0,46 detik
+sendirian vs satu `eblupFH` 0,003 detik, D = 100). `run.R` kini memuatnya di proses induk untuk run berikutnya.
+
+Penyimpangan dari PLAN §3.2:
+1. R tetap (300 titik, 200 MSE), bukan rumus dari pilot R = 100. Target MCSE coverage ≤ 0,5 poin persen tercapai
+   untuk semua metode flexsae dan FH (maks. 0,40); BART-FH C 0,52.
+2. B = 100, bukan 200 (biaya bootstrap pspline).
+3. `emdi::fh` dan `fastsae::eblup_fh` tidak dijalankan di simulasi: secara numerik sama dengan `sae::eblupFH`
+   (S1, S2, test E1). `scfh_sae` dan `boost_sae` belum masuk (cek S12, menyusul).
+4. Belum dilaporkan: skor interval, peak RSS, RRMSE per area, estimasi σ²ᵥ pada B, efek benchmark, dan validasi
+   seleksi (TPR/FPR). Dipindah ke fase lanjutan.
+5. Desain kovariat A5 (U(0,5; 2)) pilihan sendiri; teks Bukhari dkk. yang dibaca tidak memberinya, jadi hasil A5
+   tidak sebanding langsung dengan paper.
 
 ### S10 — `scfh_sae()`: kasus khusus vs `sae` dan `emdi` (28 Okt 2026)
 

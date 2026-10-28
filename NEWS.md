@@ -58,6 +58,9 @@
   plots. 'xgboost' is a suggested package.
 * `merf_sae()` and `boost_sae()` share one fitting engine; `merf_sae()`
   results are unchanged (checked against results of the previous code).
+* Vignettes "Getting started with flexsae", "Benchmarking area estimates" and
+  "Simulation study: flexsae against the linear Fay-Herriot model", and a
+  pkgdown configuration. The simulation code is in `benchmarks/simulation/`.
 * Model objects keep the bootstrap truth and direct estimates of every
   replicate (`boot_theta`, `boot_y`).
 * `print()`, `summary()`, `coef()`, `fitted()` and `residuals()` methods for

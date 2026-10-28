@@ -7,3 +7,5 @@ docs/
 *.Rcheck/
 *.tar.gz
 inst/doc
+benchmarks/simulation/results/
+benchmarks/simulation/logs/

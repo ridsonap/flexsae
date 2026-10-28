@@ -1,0 +1,109 @@
+---
+title: "Benchmarking area estimates"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Benchmarking area estimates}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.width = 6, fig.height = 4)
+```
+
+Official statistics often require that area estimates add up to a published
+aggregate, e.g. a provincial mean. flexsae offers two routes:
+
+1. **post-hoc benchmarking** with `benchmark_flexsae()`, after any model;
+2. **self-benchmarking** with `bench_weight` in `pspline_sae()` or
+   `merf_sae()`, where the model itself agrees with the weighted aggregate of
+   the direct estimates (Wang, Fuller and Qu, 2008).
+
+```{r data}
+library(flexsae)
+set.seed(2)
+D <- 80
+dat <- data.frame(x1 = runif(D, -2, 2), x2 = rnorm(D),
+                  prov = rep(c("P1", "P2", "P3", "P4"), each = D / 4),
+                  N = rpois(D, 3000))
+dat$vardir <- runif(D, 0.2, 0.6)
+dat$y <- 5 + 1.5 * sin(1.5 * dat$x1) + 0.5 * dat$x2 + rnorm(D, sd = 0.6) +
+  rnorm(D, sd = sqrt(dat$vardir))
+fit <- pspline_sae(y ~ s(x1, k = 8) + x2, vardir = "vardir", data = dat, B = 50, seed = 1)
+```
+
+## Post-hoc benchmarking
+
+The weights are population sizes `N`; with `type = "mean"` the target is the
+`N`-weighted mean of each province.
+
+```{r posthoc}
+targets <- c(P1 = 4.80, P2 = 4.75, P3 = 4.78, P4 = 4.62)
+bm <- benchmark_flexsae(fit, target = targets, weight = "N", group = "prov",
+                        method = "ratio")
+bm
+```
+
+Rules: `"ratio"` (proportional), `"difference"` (equal shift), `"optimal"`
+(shifts proportional to weight times MSE) and `"logit"` (for proportions).
+They agree with 'fastsae', 'emdi' and 'saebenchmarking'.
+
+### Which target?
+
+* A number without `target_var`: a target **known exactly**, e.g. a census
+  figure.
+* A number with `target_var`: a target **estimated** by another source, with
+  its sampling variance; its error enters the MSE.
+* `target = "direct"`: the weighted aggregate of the **direct estimates of
+  the same survey**; its correlation with the estimates is kept.
+
+### MSE after benchmarking
+
+Each bootstrap replicate of the model, which refitted the whole model, is
+benchmarked to its own bootstrap target. The MSE after benchmarking is
+therefore paired with the MSE before, and it can go up or down:
+
+```{r mse}
+summary(bm)
+autoplot(bm, type = "mse")
+```
+
+The bootstrap is done under the fitted model, so it does not show how
+benchmarking reduces the bias of a misspecified model.
+
+### Two stages
+
+`national_target` first adjusts the province targets so that they aggregate to
+the national target, then benchmarks the areas to them.
+
+```{r twostage}
+bm2 <- benchmark_flexsae(fit, target = targets, weight = "N", group = "prov",
+                         national_target = 4.70, method = "difference")
+attr(bm2, "national")
+```
+
+## Self-benchmarking
+
+`bench_weight` adds the covariate \(z_d = w_d\psi_d\) to the model, which makes
+\(\sum_d w_d\hat\theta_d = \sum_d w_d y_d\) over the sampled areas, by group
+with `bench_group`.
+
+```{r self}
+fit_sb <- pspline_sae(y ~ s(x1, k = 8) + x2, vardir = "vardir", data = dat,
+                      bench_weight = "N", bench_group = "prov", B = 50, seed = 1)
+agg <- function(v) tapply(dat$N * v, dat$prov, sum) / tapply(dat$N, dat$prov, sum)
+rbind(direct = agg(dat$y), model = agg(fit$df_est$est), self_benchmarked = agg(fit_sb$df_est$est))
+```
+
+In the simulation of Wang, Fuller and Qu (2008), reproduced in the technical
+notes of the package, the augmented model reduced the error when the model was
+misspecified and increased it by about 2% when it was correct.
+
+## References
+
+Steorts, R. and Ghosh, M. (2013). On estimation of mean squared errors of
+benchmarked empirical Bayes estimators. *Statistica Sinica*, 23(2), 749-767.
+https://doi.org/10.5705/ss.2012.053
+
+Wang, J., Fuller, W. A. and Qu, Y. (2008). Small area estimation under a
+restriction. *Survey Methodology*, 34(1), 29-36.

@@ -23,6 +23,15 @@ R CMD INSTALL . --preclean             # install before running benchmarks/ or r
 
 Scripts in `benchmarks/` use the **installed** package, not `load_all()`.
 
+```sh
+Rscript benchmarks/simulation/run.R point 300 10   # simulation study (hours; results/ is git-ignored)
+Rscript benchmarks/simulation/run.R mse 200 10
+Rscript benchmarks/update_benchmark_docs.R         # summaries -> inst/extdata/simulation.rds
+```
+
+`vignettes/simulation.Rmd` only reads `inst/extdata/simulation.rds`; rerun the two steps above after
+changing a model.
+
 ## Conventions
 
 - Naming: model functions `*_sae` (`pspline_sae`, `merf_sae`); utilities `*_flexsae`
