@@ -1,0 +1,14 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+^\.github$
+^\.DS_Store$
+^PLAN\.md$
+^CLAUDE\.md$
+^README\.Rmd$
+^LICENSE\.md$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
+^technical-report$
+^benchmarks$
+^data-raw$

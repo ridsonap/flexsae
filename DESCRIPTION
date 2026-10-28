@@ -1,0 +1,27 @@
+Package: flexsae
+Type: Package
+Title: Flexible Non-Linear Small Area Estimation for Area-Level Models
+Version: 0.0.0.9000
+Authors@R:
+    person("Ridson", "Al Farizal P", role = c("aut", "cre", "cph"),
+           email = "alfrzlp@gmail.com",
+           comment = c(ORCID = "0000-0003-0617-0214"))
+Description: Small area estimation for area-level data when the relationship
+    between the target and the covariates is non-linear. Planned models are a
+    semiparametric Fay-Herriot model with penalized splines and a Fay-Herriot
+    model combined with random forests, with bootstrap mean squared error
+    estimation, selection of covariates, benchmarking to aggregate targets and
+    'ggplot2' visualizations. The package is under development and does not
+    yet export model functions.
+License: GPL (>= 3)
+URL: https://github.com/ridsonap/flexsae
+BugReports: https://github.com/ridsonap/flexsae/issues
+Encoding: UTF-8
+Language: en-US
+Depends:
+    R (>= 4.1.0)
+Suggests:
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
+Roxygen: list(markdown = TRUE)
+Config/roxygen2/version: 8.0.0

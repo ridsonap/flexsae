@@ -1,0 +1,43 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+# flexsae
+
+<!-- badges: start -->
+[![R-CMD-check](https://github.com/ridsonap/flexsae/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/ridsonap/flexsae/actions/workflows/R-CMD-check.yaml)
+[![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+<!-- badges: end -->
+
+**flexsae** is an R package, under development, for small area estimation with
+area-level data (direct estimates with known sampling variances) when the
+covariates act non-linearly. It does not export model functions yet.
+
+Planned for the first release:
+
+- `pspline_sae()`: semiparametric Fay-Herriot model with penalized splines
+  (fitted by REML with 'mgcv'), with parametric bootstrap MSE.
+- `merf_sae()`: Fay-Herriot model with a random forest for the fixed part,
+  with parametric bootstrap MSE.
+- `select_flexsae()`, `benchmark_flexsae()` (benchmarking to aggregate targets,
+  including the MSE of the benchmarked estimates), and `autoplot()` methods.
+
+Every method is checked against the linear Fay-Herriot model of the `sae`,
+`emdi` and `fastsae` packages, and in simulation studies that also report the
+settings where the flexible models do worse.
+
+## Installation
+
+```r
+# install.packages("pak")
+pak::pak("ridsonap/flexsae")
+```
