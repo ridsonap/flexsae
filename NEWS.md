@@ -24,6 +24,12 @@
   bootstrap (each replicate benchmarked to its bootstrap target). The rules
   agree with 'fastsae', 'emdi' and 'saebenchmarking'; the MSE increase of
   difference benchmarking agrees with Steorts and Ghosh (2013).
+* Self-benchmarking in `pspline_sae()` and `merf_sae()` (`bench_weight`,
+  `bench_group`): the augmented model of Wang, Fuller and Qu (2008, eq. 23)
+  makes the weighted aggregate of the estimates equal that of the direct
+  estimates over the sampled areas, by group, without a post-hoc adjustment.
+  For `merf_sae()` the augmentation is applied in the final EBLUP step with the
+  forest as an offset, an extension not in Bukhari et al. (2026).
 * Model objects keep the bootstrap truth and direct estimates of every
   replicate (`boot_theta`, `boot_y`).
 * `print()`, `summary()`, `coef()`, `fitted()` and `residuals()` methods for

@@ -19,6 +19,8 @@ Status (28 Okt 2026): `pspline_sae()`, `merf_sae()` dan `benchmark_flexsae()` su
 | BM-2 | `benchmark_flexsae(method = "optimal")` | `emdi::benchmark(type = "MSE_adj")` | k_d ∝ a_d·mse_d (fastsae, saebenchmarking), bukan k_d ∝ mse_d (emdi). | Mengikuti dua package pembanding lain; perbedaan disebut di Rd. |
 | BM-3 | `benchmark_flexsae()` | PLAN §5.4 | Tidak ada MSE linearisasi; hanya bootstrap. | Bootstrap memakai replikat fit-ulang yang sudah ada; untuk difference identik dengan linearisasi bermomen bootstrap. |
 | BM-4 | `benchmark_flexsae(national_target = )` | Ghosh & Steorts (2013) | Dua tahap mengikuti algoritma `fastsae::benchmark_sae` (tahap 1 menyesuaikan target grup dengan aturan yang sama), bukan estimator Bayes dua-tahap Ghosh & Steorts. Target nasional dianggap diketahui eksak. | Konsisten dengan fastsae (selisih ≤ 2e-16); paper hanya [V-meta]. |
+| SB-1 | `pspline_sae(bench_weight = )` | Wang, Fuller & Qu (2008), pers. (23) | Augmentasi juga dipakai dengan suku smooth berpenalti; paper hanya model linear. Area tak-sampel diberi z = 0 (paper: semua area tersampel). | Skor koefisien tak-berpenalti di persamaan model campuran berpenalti tetap nol, jadi restriksi berlaku eksak (test 1e-7). |
+| SB-2 | `merf_sae(bench_weight = )` | Wang, Fuller & Qu (2008); Bukhari dkk. (2026) | Augmentasi diterapkan di langkah EBLUP akhir dengan hutan sebagai offset dan σ²ᵥ tetap; σ²ᵥ tidak diestimasi ulang di model augmentasi. **Perluasan sendiri.** | Restriksi eksak dari persamaan normal GLS untuk α (test 1e-8). Pengaruh pada MSE/bias belum dievaluasi (fase 5). |
 
 ## Catatan verifikasi
 
@@ -110,3 +112,23 @@ MSE (milk, bobot N ~ Poisson(300), `pspline_sae` linear, B = 2000, target `"dire
 | ratio | 0,000084 | bootstrap `saebenchmarking` (B = 1000) | median 0,989 [0,912; 1,122] |
 
 Selisih level (~3%) berasal dari MSE dasar bootstrap vs Prasad-Rao (rasio 0,98 di fase 1), bukan dari benchmark.
+
+### S8 — replikasi pilot simulasi Wang, Fuller & Qu (2008, §5) (28 Okt 2026)
+
+Skrip `benchmarks/pilot/wfq_replication.R`: populasi dan mᵢ dari Tabel 1; data dari model (B)
+θᵢ = 6 + 3zᵢ + bᵢ, zᵢ = Pop^0,2 − rata-rata, bᵢ ~ N(0, 1), ψᵢ = 16/mᵢ **diketahui** (paper mengestimasi
+σ²ₑ dari data unit), σ²_b dengan REML (paper: Wang & Fuller 2003), R = 2000. Q pers. (34).
+
+| Q (± MCSE) | EBLUP | AUG2 (`bench_weight = ω`) | Paper |
+|---|---|---|---|
+| model (B) | 1,071 ± 0,005 | 1,091 ± 0,005 | EBLUP 1,06 bila σ²ₑ diketahui (teks §5.2); AUG2 naik < 2% (Tabel 2: 1,203 → 1,219 dengan σ²ₑ diestimasi) |
+| model (A) | 1,285 ± 0,006 | 1,078 ± 0,005 | 1,438 → 1,298 (σ²ₑ diestimasi) |
+
+Bias ternormalisasi EBLUP model (A), negara bagian 1/2/14/26/38/50: flexsae −0,577/−0,494/−0,097/0,060/0,427/1,005;
+Tabel 4 −0,597/−0,496/−0,121/0,057/0,380/0,922. AUG2: flexsae 0,251/0,082/−0,049/−0,053/0,030/0,292;
+Tabel 4 −0,030/−0,070/−0,025/0,053/0,202/0,537 (berbeda karena z di paper memakai σ̂²ₑ acak).
+Rata-rata Σω(Y − ŷ) EBLUP model (A): flexsae **+0,099** (MCSE 0,0004), paper **−0,100**. Besarnya sama;
+tandanya berlawanan. Arah logis (negara besar z > 0, prediksi model A ditarik ke bawah, ω besar) memberi
+nilai positif, jadi **kemungkinan** konvensi tanda atau salah cetak di paper — tidak dipastikan.
+Satu dari 8000 fit memberi peringatan konvergensi mgcv ("step failed").
+Kesimpulan: arah dan besaran efek augmentasi direproduksi (Q turun pada model salah, naik ~2% pada model benar).

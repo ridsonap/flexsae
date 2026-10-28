@@ -15,8 +15,8 @@
   if (!inherits(formula, "formula") || length(formula) != 3) {
     cli::cli_abort("{.arg formula} must be a two-sided formula, e.g. {.code y ~ s(x1) + x2}.", call = NULL)
   }
-  reserved <- c(.area_var, .resp_var, ".flexsae_w")
-  clash <- intersect(reserved, c(names(data), all.vars(formula)))
+  nms <- unique(c(names(data), all.vars(formula)))
+  clash <- nms[startsWith(nms, ".flexsae_")]
   if (length(clash) > 0) {
     cli::cli_abort("{.val {clash}} {?is/are} reserved for internal use; rename {?that column/those columns}.", call = NULL)
   }

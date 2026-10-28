@@ -20,6 +20,12 @@
 #'   covariate values.
 #' @param method Estimation method of the variance components and smoothing
 #'   parameters: `"REML"` (default) or `"ML"`.
+#' @param bench_weight Optional weights \eqn{w_d} for self-benchmarking (a
+#'   column name, a one-sided formula or a vector): the model is augmented so
+#'   that \eqn{\sum_d w_d\hat\theta_d = \sum_d w_d y_d} over the sampled areas
+#'   (see Details). Only the relative sizes of the weights matter.
+#' @param bench_group Optional groups for self-benchmarking, given like
+#'   `bench_weight`; the restriction then holds within each group.
 #' @param mse `"bootstrap"` (default) for the parametric bootstrap MSE, or
 #'   `"none"`.
 #' @param B Number of bootstrap replicates. Default 200.
@@ -54,6 +60,16 @@
 #' \eqn{\gamma_d = \hat\sigma^2_v/(\hat\sigma^2_v + \psi_d)}. Unsampled areas get
 #' \eqn{\hat v_d = 0}.
 #'
+#' **Self-benchmarking.** With `bench_weight`, the covariate
+#' \eqn{z_d = w_d\psi_d} (one per group with `bench_group`, zero for unsampled
+#' areas) is added as an unpenalized term (the augmented model of Wang, Fuller
+#' and Qu, 2008, eq. 23). The mixed model equations then give
+#' \eqn{\sum_d w_d(y_d - \hat\theta_d) = 0} over the sampled areas of each group,
+#' whatever the smoothing parameters, so the estimates agree with the weighted
+#' aggregate of the direct estimates without a post-hoc adjustment. The
+#' bootstrap refits the augmented model, so the MSE includes the augmentation.
+#' Its coefficients are reported as `bench(<group>)`.
+#'
 #' **MSE.** Naive parametric bootstrap: for \eqn{b = 1, \dots, B},
 #' \eqn{\theta^*_d = \hat m(x_d) + v^*_d} with \eqn{v^*_d \sim N(0, \hat\sigma^2_v)} and
 #' \eqn{y^*_d = \theta^*_d + e^*_d} with \eqn{e^*_d \sim N(0, \psi_d)}; the model,
@@ -71,7 +87,7 @@
 #'   * `smooth`: table of the smooth terms (effective degrees of freedom and
 #'     approximate tests from [mgcv::summary.gam()]).
 #'   * `sigma2_v`, `fit` (the [mgcv::gam()] object), `formula`, `call`, `data`,
-#'     `model`, `method`, `mse_method`, `B`, `B_success`, `n_boot_failed`,
+#'     `model`, `method`, `self_benchmark` (logical), `mse_method`, `B`, `B_success`, `n_boot_failed`,
 #'     `boot_errors` (matrix of \eqn{\hat\theta^*_d - \theta^*_d}), `boot_theta`
 #'     (\eqn{\theta^*_d}), `boot_y` (\eqn{y^*_d}), `seed`,
 #'     `conf_level` and `convergence`.
@@ -90,6 +106,9 @@
 #' Hall, P. and Maiti, T. (2006). On parametric bootstrap methods for small area
 #' prediction. *Journal of the Royal Statistical Society Series B*, 68(2),
 #' 221-238. \doi{10.1111/j.1467-9868.2006.00541.x}
+#'
+#' Wang, J., Fuller, W. A. and Qu, Y. (2008). Small area estimation under a
+#' restriction. *Survey Methodology*, 34(1), 29-36.
 #'
 #' Ruppert, D., Wand, M. P. and Carroll, R. J. (2003). *Semiparametric
 #' Regression*. Cambridge University Press. \doi{10.1017/CBO9780511755453}
@@ -125,6 +144,8 @@ pspline_sae <- function(
   domain = NULL,
   data,
   method = c("REML", "ML"),
+  bench_weight = NULL,
+  bench_group = NULL,
   mse = c("bootstrap", "none"),
   B = 200,
   seed = NULL,
@@ -135,6 +156,14 @@ pspline_sae <- function(
   .check_boot_args(mse, B, seed, conf_level)
 
   ad <- .prepare_area_data(formula, vardir, domain, data)
+  sb <- .self_benchmark_cols(bench_weight, bench_group, data, ad$vardir, ad$sampled)
+  if (!is.null(sb)) {
+    for (nm in colnames(sb$Z)) {
+      ad$data[[nm]] <- sb$Z[, nm]
+      ad$fit_data[[nm]] <- sb$Z[ad$sampled, nm]
+      ad$formula_fit[[3]] <- call("+", ad$formula_fit[[3]], as.name(nm))
+    }
+  }
   fh <- .fit_fh_gam(ad$formula_fit, ad$fit_data, method)
   if (!fh$converged) {
     cli::cli_warn("The smoothing parameter optimization of {.fn mgcv::gam} did not fully converge ({.val {fh$fit$outer.info$conv}}).")
@@ -142,6 +171,7 @@ pspline_sae <- function(
   pred <- .predict_fh_gam(fh, ad$data, ad$sampled)
   est <- pred$synthetic + pred$random_effect
   gamma <- ifelse(ad$sampled, fh$sigma2_v / (fh$sigma2_v + ad$vardir), NA_real_)
+  if (!is.null(sb)) .check_self_benchmark(sb, ad$y, est, ad$sampled)
 
   boot <- list(mse = rep(NA_real_, length(est)), B_success = NA_integer_, n_failed = NA_integer_, errors = NULL, theta = NULL, y = NULL)
   if (mse == "bootstrap") {
@@ -166,7 +196,7 @@ pspline_sae <- function(
         synthetic = pred$synthetic, random_effect = pred$random_effect,
         gamma = gamma, mse = boot$mse, sampled = ad$sampled, conf_level = conf_level
       ),
-      coefficients = as.data.frame(sfit$p.table),
+      coefficients = .rename_bench_rows(as.data.frame(sfit$p.table), sb),
       smooth = smooth,
       sigma2_v = fh$sigma2_v,
       fit = fh$fit,
@@ -175,6 +205,7 @@ pspline_sae <- function(
       data = data,
       model = "pspline_sae",
       method = method,
+      self_benchmark = !is.null(sb),
       mse_method = mse,
       B = if (mse == "bootstrap") as.integer(B) else NA_integer_,
       B_success = boot$B_success,

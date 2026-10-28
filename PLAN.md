@@ -251,7 +251,18 @@ Area tak-sampel ikut diagregasi dan disesuaikan (`areas = "all"`, default) atau 
 (`"sampled"`). Bobot NA/≤ 0 → `cli_abort`; bobot `mean` dinormalkan per grup dengan pesan bila
 jumlahnya ≠ 1. Proporsi: peringatan bila ratio/difference keluar (0, 1); cacahan: ratio menjaga ≥ 0.
 
-### 5.3 Self-benchmark (argumen `self_benchmark` pada fungsi model)
+### 5.3 Self-benchmark (argumen `bench_weight`, `bench_group` pada fungsi model)
+
+> **Status 28 Okt 2026 (fase 3b selesai).** Wang, Fuller & Qu (2008) dibaca penuh (PDF StatCan, 9 hlm.):
+> model augmentasi pers. (23), $X_2 = (X, \omega_e)$ dengan $\omega_{e,i} = \omega_i\sigma^2_{ei}$, self-calibrated dengan β GLS
+> untuk σ² berapa pun (§3); MSE memakai rumus EBLUP biasa (§4). Dugaan di bawah **terbukti**: dari persamaan
+> model campuran (9)–(10), skor koefisien z = $\sum_d w_d(y_d - \hat\theta_d) = 0$, sehingga juga berlaku untuk
+> `pspline_sae` dengan smooth (mgcv menyelesaikan persamaan model campuran berpenalti yang sama).
+> `merf_sae`: augmentasi di langkah EBLUP akhir (GLS α pada $y - \hat m$, σ² tetap) — **perluasan sendiri**,
+> eksak secara aljabar dan dites. Area tak-sampel: $z_d = 0$. Rincian di bawah adalah rancangan awal.
+
+#### Rancangan awal
+
 
 - `pspline_sae()`: augmentasi Wang, Fuller & Qu (2008) [V-meta, PDF dibuka] — kolom tak-berpenalti
   $z_d = w_d\psi_d$ per grup. Persamaan Henderson untuk kolom efek tetap memberi
@@ -343,7 +354,7 @@ rmarkdown, covr`. GPL (>= 3).
 | 1 ✅ | inti FH mgcv (`R/fh_gam.R`) + `pspline_sae()` (titik, bootstrap MSE, S3), E1 vs sae/fastsae/emdi | test hijau, check 0 ERROR/WARNING |
 | 2 ✅ | `merf_sae()` dua varian × dua algoritma + bootstrap MSE, E2–E3, pemecah FH cepat | idem |
 | 3a ✅ | `benchmark_flexsae()` post-hoc, MSE terbenchmark bootstrap, E4–E6, tes properti | idem |
-| 3b | self-benchmark (WFQ) untuk `pspline_sae`/`merf_sae` setelah paper dibaca | idem |
+| 3b ✅ | self-benchmark (WFQ pers. 23) untuk `pspline_sae`/`merf_sae` | idem |
 | 4 | `select_flexsae()`, importance, partial, `autoplot` | idem + validasi seleksi pilot |
 | 5 | Simulasi ADEMP (paket terinstal), vignette, pkgdown | tabel dengan MCSE, situs terbangun |
 | 6 | Rencana lanjutan §2.4 | – |

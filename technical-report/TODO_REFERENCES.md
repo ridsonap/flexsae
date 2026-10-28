@@ -42,7 +42,7 @@ diimplementasikan sebelum teks lengkapnya dibaca dan nomor persamaannya dicatat
 | `ugarte2009benchmarked` | Abstrak: estimator terestriksi + MSE prediksi diturunkan | Apakah model unit-level; bentuk MSE |
 | `steorts2013estimation` | Abstrak: FH, kenaikan MSE akibat benchmark O(m⁻¹), estimator MSE orde-2 dan bootstrap parametrik | Persamaan |
 | `ghosh2015benchmarked`, `ghosh2013two`, `bell2013benchmarking`, `datta2011bayesian` | Metadata | Persamaan |
-| `wang2008small` | PDF: abstrak, model augmentasi | Rumus MSE prediktor terkalibrasi |
+| `wang2008small` | **Dibaca penuh 28 Okt 2026** (PDF StatCan 12-001-X, 9 hlm.): model (1)–(3), BLUP (4)–(6), PB (13), ITF (14), bentuk umum (15), YR (16)–(17), Teorema 1 (19), augmentasi (21)–(23), MSE §4, simulasi §5 (Tabel 1–4). | – |
 | `you2013performance`, `stefan2021small` | PDF: abstrak | Rumus MSPE |
 | `chambers2011bias`, `marchetti2012nonparametric` | Abstrak | Rumus |
 

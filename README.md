@@ -18,7 +18,7 @@ Available:
 
 - `pspline_sae()`: semiparametric Fay-Herriot model with penalized
   splines (fitted by REML or ML with ‘mgcv’), with parametric bootstrap
-  MSE.
+  MSE and optional self-benchmarking to the direct estimates.
 
 - `merf_sae()`: Fay-Herriot model with a random forest for the fixed
   part (replacing or correcting the linear predictor), with parametric
@@ -30,8 +30,7 @@ Available:
 
 Planned for the first release:
 
-- `select_flexsae()`, self-benchmarking within the models, and
-  `autoplot()` methods.
+- `select_flexsae()` and `autoplot()` methods.
 
 Every method is checked against the linear Fay-Herriot model of the
 `sae`, `emdi` and `fastsae` packages, and in simulation studies that
