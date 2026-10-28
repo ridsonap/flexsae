@@ -52,7 +52,7 @@ dat$vardir <- runif(D, 0.2, 0.6)
 dat$y <- 2 + sin(1.5 * dat$x1) + 0.5 * dat$x2 + rnorm(D, sd = 0.5) +
   rnorm(D, sd = sqrt(dat$vardir))
 fit <- pspline_sae(y ~ s(x1, k = 6) + x2, vardir = "vardir", data = dat,
-                   B = 20, seed = 1)
+                   B = 10, seed = 1)
 autoplot(fit)
 autoplot(fit, type = "partial")
 }

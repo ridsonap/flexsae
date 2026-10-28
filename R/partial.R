@@ -60,7 +60,7 @@
 partial_flexsae <- function(object, vars = NULL, n = 50, ice = FALSE, conf_level = 0.95) {
   if (!inherits(object, "flexsae") || identical(object$model, "scfh_sae")) {
     cli::cli_abort(c(
-      "{.arg object} must be a model from {.fn pspline_sae} or {.fn merf_sae}.",
+      "{.arg object} must be a model from {.fn pspline_sae}, {.fn merf_sae} or {.fn boost_sae}.",
       "i" = if (inherits(object, "flexsae_scfh")) "For {.fn scfh_sae} see {.code autoplot(object, type = \"clusters\")}."
     ), call = NULL)
   }
@@ -149,9 +149,13 @@ partial_flexsae <- function(object, vars = NULL, n = 50, ice = FALSE, conf_level
   }
   x_cols <- all.vars(object$formula[[3]])
   function(nd) {
-    x <- nd[, x_cols, drop = FALSE]
-    x[] <- lapply(x, function(v) if (is.character(v)) factor(v) else v)
-    each <- stats::predict(object$rf, data = x, num.threads = 1)$predictions
+    if (inherits(object, "flexsae_boost")) {
+      each <- stats::predict(object$booster, .boost_matrix(object$formula, nd, ref_data = object$data))
+    } else {
+      x <- nd[, x_cols, drop = FALSE]
+      x[] <- lapply(x, function(v) if (is.character(v)) factor(v) else v)
+      each <- stats::predict(object$rf, data = x, num.threads = 1)$predictions
+    }
     if (identical(object$variant, "correct")) {
       each <- each + drop(.design_matrix(object$formula, nd, ref_data = object$data) %*% object$fit$beta)
     }

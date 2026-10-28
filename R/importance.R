@@ -1,12 +1,15 @@
-#' Variable Importance of a Random Forest Fay-Herriot Model
+#' Variable Importance of a Machine Learning Fay-Herriot Model
 #'
-#' Permutation or impurity importance of the covariates in the final forest of
-#' a [merf_sae()] fit.
+#' Importance of the covariates in the final forest of a [merf_sae()] fit or
+#' the final booster of a [boost_sae()] fit.
 #'
-#' @param object A model from [merf_sae()].
-#' @param type `"permutation"` (default): the increase of the out-of-bag mean
-#'   squared error when the values of a covariate are permuted (Breiman,
-#'   2001); `"impurity"`: the total decrease of node impurity.
+#' @param object A model from [merf_sae()] or [boost_sae()].
+#' @param type For [merf_sae()]: `"permutation"` (default), the increase of
+#'   the out-of-bag mean squared error when the values of a covariate are
+#'   permuted (Breiman, 2001), or `"impurity"`, the total decrease of node
+#'   impurity. For [boost_sae()]: `"gain"` (the default and only choice), the
+#'   total gain of the splits on a covariate, summed over the one-hot columns
+#'   of a factor and normalized to sum to one (`xgboost::xgb.importance()`).
 #'
 #' @details The forest is refitted to the stored response of the final forest
 #' (`rf_target`) with the same seed and settings, so its trees and predictions
@@ -36,11 +39,20 @@
 #' fit <- merf_sae(y ~ x1 + x2 + x3, vardir = "vardir", data = dat,
 #'                 num.trees = 200, mse = "none", seed = 1)
 #' importance_flexsae(fit)
-importance_flexsae <- function(object, type = c("permutation", "impurity")) {
-  type <- match.arg(type)
+importance_flexsae <- function(object, type = c("permutation", "impurity", "gain")) {
+  if (inherits(object, "flexsae_boost")) {
+    if (!missing(type) && !identical(type, "gain")) {
+      cli::cli_abort("{.fn boost_sae} models have {.code type = \"gain\"} importance only.", call = NULL)
+    }
+    return(.boost_importance(object))
+  }
+  type <- if (missing(type)) "permutation" else match.arg(type)
+  if (type == "gain" && inherits(object, "flexsae_merf")) {
+    cli::cli_abort("{.code type = \"gain\"} is for {.fn boost_sae} models.", call = NULL)
+  }
   if (!inherits(object, "flexsae_merf")) {
     cli::cli_abort(c(
-      "{.fn importance_flexsae} needs a {.fn merf_sae} model.",
+      "{.fn importance_flexsae} needs a {.fn merf_sae} or {.fn boost_sae} model.",
       "i" = "For {.fn pspline_sae} models see {.code summary(fit$fit)} and {.fn partial_flexsae}."
     ), call = NULL)
   }
@@ -66,3 +78,19 @@ importance_flexsae <- function(object, type = c("permutation", "impurity")) {
   x[] <- lapply(x, function(v) if (is.character(v)) factor(v) else v)
   x
 }
+
+#' Gain importance of a boost_sae() booster, by covariate
+#' @noRd
+.boost_importance <- function(object) {
+  ba <- object$boost_args
+  gain <- stats::setNames(numeric(length(ba$columns)), ba$columns)
+  imp <- xgboost::xgb.importance(model = object$booster)
+  if (nrow(imp) > 0) gain[imp$Feature] <- imp$Gain
+  by_var <- tapply(gain, factor(ba$variables[ba$assign], levels = ba$variables), sum)
+  out <- data.frame(variable = names(by_var), importance = as.numeric(by_var), stringsAsFactors = FALSE)
+  out <- out[order(-out$importance), , drop = FALSE]
+  rownames(out) <- NULL
+  attr(out, "type") <- "gain"
+  out
+}
+

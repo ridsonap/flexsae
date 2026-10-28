@@ -48,6 +48,16 @@
   paper. `select_flexsae(method = "grid")` chooses `K` and `phi` with the
   two-step rule of the paper, and `autoplot(type = "clusters")` shows the
   coefficients by cluster. Self-benchmarking is not available for this model.
+* New `boost_sae()` (experimental): Fay-Herriot model with an XGBoost fixed
+  part, our own area-level adaptation of the scheme of `merf_sae()` with the
+  learner of the unit-level MEGB of Messer and Schmid (2026). Sampled areas
+  get cross-fitted predictions (the counterpart of out-of-bag predictions);
+  `nrounds` is chosen by cross-validation with early stopping and kept for the
+  bootstrap. One-pass and iterative algorithms, `"replace"` and `"correct"`
+  variants, self-benchmarking, gain importance, partial dependence and
+  plots. 'xgboost' is a suggested package.
+* `merf_sae()` and `boost_sae()` share one fitting engine; `merf_sae()`
+  results are unchanged (checked against results of the previous code).
 * Model objects keep the bootstrap truth and direct estimates of every
   replicate (`boot_theta`, `boot_y`).
 * `print()`, `summary()`, `coef()`, `fitted()` and `residuals()` methods for

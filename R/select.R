@@ -131,6 +131,12 @@ select_flexsae <- function(
     cli::cli_abort("{.arg object} must be a model from {.fn pspline_sae}, {.fn merf_sae} or {.fn scfh_sae}.",
                    call = NULL)
   }
+  if (identical(object$model, "boost_sae")) {
+    cli::cli_abort(c(
+      "Covariate selection for {.fn boost_sae} models is not implemented.",
+      "i" = "See {.fn importance_flexsae} for the gain of each covariate."
+    ), call = NULL)
+  }
   is_merf <- identical(object$model, "merf_sae")
   is_scfh <- identical(object$model, "scfh_sae")
   method <- method %||% if (is_merf) "boruta" else if (is_scfh) "grid" else "step"

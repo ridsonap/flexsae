@@ -2,24 +2,27 @@
 % Please edit documentation in R/importance.R
 \name{importance_flexsae}
 \alias{importance_flexsae}
-\title{Variable Importance of a Random Forest Fay-Herriot Model}
+\title{Variable Importance of a Machine Learning Fay-Herriot Model}
 \usage{
-importance_flexsae(object, type = c("permutation", "impurity"))
+importance_flexsae(object, type = c("permutation", "impurity", "gain"))
 }
 \arguments{
-\item{object}{A model from \code{\link[=merf_sae]{merf_sae()}}.}
+\item{object}{A model from \code{\link[=merf_sae]{merf_sae()}} or \code{\link[=boost_sae]{boost_sae()}}.}
 
-\item{type}{\code{"permutation"} (default): the increase of the out-of-bag mean
-squared error when the values of a covariate are permuted (Breiman,
-2001); \code{"impurity"}: the total decrease of node impurity.}
+\item{type}{For \code{\link[=merf_sae]{merf_sae()}}: \code{"permutation"} (default), the increase of
+the out-of-bag mean squared error when the values of a covariate are
+permuted (Breiman, 2001), or \code{"impurity"}, the total decrease of node
+impurity. For \code{\link[=boost_sae]{boost_sae()}}: \code{"gain"} (the default and only choice), the
+total gain of the splits on a covariate, summed over the one-hot columns
+of a factor and normalized to sum to one (\code{xgboost::xgb.importance()}).}
 }
 \value{
 A data frame with columns \code{variable} and \code{importance}, sorted by
 decreasing importance, with attribute \code{type}.
 }
 \description{
-Permutation or impurity importance of the covariates in the final forest of
-a \code{\link[=merf_sae]{merf_sae()}} fit.
+Importance of the covariates in the final forest of a \code{\link[=merf_sae]{merf_sae()}} fit or
+the final booster of a \code{\link[=boost_sae]{boost_sae()}} fit.
 }
 \details{
 The forest is refitted to the stored response of the final forest

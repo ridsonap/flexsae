@@ -212,8 +212,9 @@ merf_sae <- function(
   X <- .design_matrix(formula, data)
   sb <- .self_benchmark_cols(bench_weight, bench_group, data, ad$vardir, ad$sampled)
 
+  learner <- function(target, seed) .fit_rf(rf_x, target, ad$sampled, rf_args, seed)
   fit_once <- function(y) {
-    .merf_fit(y, X, rf_x, ad$vardir, ad$sampled, variant, algorithm, method, rf_args, maxit, tol, sb$Z)
+    .merf_fit(y, X, learner, ad$vardir, ad$sampled, variant, algorithm == "merf", method, maxit, tol, sb$Z)
   }
 
   .with_seed(seed, {
@@ -245,9 +246,9 @@ merf_sae <- function(
         gamma = res$gamma, mse = boot$mse, sampled = ad$sampled, conf_level = conf_level
       ),
       coefficients = coefficients,
-      rf = res$rf,
-      rf_target = res$rf_target,
-      rf_seed = res$rf_seed,
+      rf = res$learner_fit,
+      rf_target = res$learner_target,
+      rf_seed = res$learner_seed,
       rf_args = rf_args,
       sigma2_v = res$sigma2_v,
       fit = fh[c("sigma2_v", "beta", "vcov", "method")],
@@ -276,25 +277,31 @@ merf_sae <- function(
   )
 }
 
-#' One fit of merf_sae() on a response vector
+#' One fit of a Fay-Herriot model with a machine learning fixed part
 #'
-#' Used for the point fit and for every bootstrap replicate.
+#' Shared by merf_sae() (random forest) and boost_sae() (gradient boosting);
+#' used for the point fit and for every bootstrap replicate.
 #'
 #' @param y Response of all areas (NA for unsampled).
 #' @param X Design matrix of the linear terms, all areas.
-#' @param rf_x Forest covariates of all areas.
+#' @param learner Function of the target (all areas, NA allowed for
+#'   unsampled) and a seed, returning `list(fit, f)` where `f` holds
+#'   out-of-sample predictions (out-of-bag or cross-fitted) for the sampled
+#'   areas and ordinary predictions for the unsampled ones.
+#' @param iterative Alternate the learner and the Fay-Herriot fit (`"merf"`,
+#'   `"iterative"`) instead of one pass (`"fhrf"`, `"onepass"`).
 #' @param Z Optional self-benchmarking columns (all areas).
 #' @return List with `est`, `synthetic`, `random_effect`, `gamma`, `sigma2_v`,
-#'   `fh` (last linear Fay-Herriot fit), `rf`, `iterations`, `converged` and
-#'   `bench` (table of the self-benchmarking coefficients, or NULL), `rf_target`
-#'   and `rf_seed`.
+#'   `fh` (last linear Fay-Herriot fit), `learner_fit`, `learner_target`,
+#'   `learner_seed`, `iterations`, `converged` and `bench` (table of the
+#'   self-benchmarking coefficients, or NULL).
 #' @noRd
-.merf_fit <- function(y, X, rf_x, vardir, sampled, variant, algorithm, method, rf_args, maxit, tol,
+.merf_fit <- function(y, X, learner, vardir, sampled, variant, iterative, method, maxit, tol,
                       Z = NULL) {
   ys <- y[sampled]
   Xs <- X[sampled, , drop = FALSE]
   vs <- vardir[sampled]
-  rf_seed <- sample.int(.Machine$integer.max, 1L)
+  seed <- sample.int(.Machine$integer.max, 1L)
   blup <- function(fixed, s2) ifelse(sampled, s2 / (s2 + vardir) * (y - fixed), 0)
 
   # step 1: linear Fay-Herriot fit
@@ -307,9 +314,9 @@ merf_sae <- function(
   repeat {
     iterations <- iterations + 1L
     target <- if (variant == "correct") y - linear - v else y - v
-    rf <- .fit_rf(rf_x, target, sampled, rf_args, rf_seed)
+    rf <- learner(target, seed)
     fixed <- if (variant == "correct") linear + rf$f else rf$f
-    if (algorithm == "fhrf") {
+    if (!iterative) {
       break
     }
     # refit the Fay-Herriot model with the forest as an offset
@@ -350,7 +357,7 @@ merf_sae <- function(
   }
 
   .fhrf_combine(fixed, y, fh$sigma2_v, vardir, sampled,
-                list(fh = fh, rf = rf$fit, rf_target = target[sampled], rf_seed = rf_seed,
+                list(fh = fh, learner_fit = rf$fit, learner_target = target[sampled], learner_seed = seed,
                      iterations = iterations, converged = converged, bench = bench))
 }
 

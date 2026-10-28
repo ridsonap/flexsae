@@ -155,7 +155,15 @@ Sumber: Maranzano, Mattera & Sugasawa (2026), arXiv:2608.13638 [V, **preprint be
 - **Alternatif non-spasial (belum dikerjakan):** clustered effects dengan fusion penalty Wang & Payne
   (2026, JSSAM) [V-meta]; clustering FH Torkashvand, Jafari Jozani & Torabi (2017, JRSSA) [V-meta].
 
-### 2.5 Rencana lanjutan (bukan v0.1)
+### 2.5 `boost_sae()` — Fay-Herriot dengan gradient boosting (eksperimental)
+
+Tidak ada paper area-level (dicari 28 Okt 2026). Adaptasi sendiri: skema `merf_sae()` (Bukhari dkk. 2026)
+dengan learner XGBoost dari MEGB unit-level (Messer & Schmid 2026 [V], arXiv v2 §2.1–2.4 dibaca).
+Mesin dipakai bersama dengan merf (`.merf_fit(learner = )`). Prediksi area tersampel di-*cross-fit*
+(padanan OOB), `nrounds` dari xgb.cv + early stopping, dikunci di bootstrap. BST-1..3 di DISCREPANCIES.
+Evaluasi: ditambahkan ke simulasi titik fase 5 setelah fase 5 di-commit (cek S12).
+
+### 2.6 Rencana lanjutan (bukan v0.1)
 
 Unit-level: P-spline nested error (Opsomer dkk. 2008), MERF unit-level (Krennmair & Schmid 2022;
 MSE bootstrap REB Chambers & Chandra 2013 dengan varians terkoreksi Mendez & Lohr 2011), MERF
@@ -355,14 +363,14 @@ termasuk skenario kalah); visualization. Angka dari `inst/extdata/*.rds` lewat
 
 ```
 R/  flexsae-package.R utils.R checks.R
-    pspline_sae.R merf_sae.R scfh_sae.R fh_gam.R (FH via mgcv, pspline) fh_lm.R (FH satu komponen varians, merf, scfh)
+    pspline_sae.R merf_sae.R boost_sae.R scfh_sae.R fh_gam.R (FH via mgcv, pspline) fh_lm.R (FH satu komponen varians, merf, scfh)
     mse_bootstrap.R benchmark.R self_benchmark.R
     select.R importance.R partial.R methods.R autoplot.R compare.R sim_data.R data.R
 tests/testthat/  test_<modul>.R, helper-*.R, fixtures/
 data-raw/  benchmarks/  technical-report/  vignettes/
 ```
 
-Objek: kelas `c("flexsae_pspline" | "flexsae_merf" | "flexsae_scfh", "flexsae")`; `df_est` (`domain, direct, vardir, est,
+Objek: kelas `c("flexsae_pspline" | "flexsae_merf" | "flexsae_boost" | "flexsae_scfh", "flexsae")`; `df_est` (`domain, direct, vardir, est,
 synthetic, random_effect, gamma, mse, rse, ci_lower, ci_upper, sampled`), `fit`, `sigma2_v`, `formula`, `call`, `data`, `model`,
 `mse_method`, `B`, `seed`, `convergence`, `iterations`, `self_benchmark`. Kolom yang tidak berlaku = NA.
 
@@ -384,7 +392,8 @@ rmarkdown, covr`. GPL (>= 3).
 | 4 ✅ | `select_flexsae()` (step pspline, Boruta merf), importance, partial/ICE, `autoplot` | idem; validasi seleksi (TPR/FPR) dipindah ke fase 5 |
 | 5 | Simulasi ADEMP (paket terinstal), vignette, pkgdown | tabel dengan MCSE, situs terbangun |
 | 6 | `scfh_sae()` (SC-FH, eksperimental) + `select_flexsae(method = "grid")` + pilot lattice | test hijau; S10 kasus khusus vs sae/emdi; pilot S11 |
-| 7 | Rencana lanjutan §2.5 | – |
+| 6b | `boost_sae()` (XGBoost, cross-fitting) + mesin learner bersama merf | test hijau; merf identik dengan fixture pra-refactor; S12 simulasi |
+| 7 | Rencana lanjutan §2.6 | – |
 
 Setiap fase: `devtools::document()` → `devtools::test()` → `R CMD check --as-cran`; hasil dilaporkan
 apa adanya. win-builder/CRAN/tag hanya setelah konfirmasi.
