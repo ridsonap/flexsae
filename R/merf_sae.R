@@ -103,11 +103,14 @@
 #'   * `coefficients`: table of the coefficients of the linear part of the final
 #'     predictor (`"correct"`; no rows for `"replace"`), plus the
 #'     self-benchmarking coefficients `bench(<group>)`.
-#'   * `rf`: the [ranger::ranger()] fit of the final forest.
+#'   * `rf`: the [ranger::ranger()] fit of the final forest; `rf_target` (its
+#'     response over the sampled areas), `rf_seed` and `rf_args` (the forest
+#'     settings given).
 #'   * `sigma2_v`, `fit` (the last linear Fay-Herriot fit: `sigma2_v`, `beta`,
 #'     `vcov`, `method`),
 #'     `formula`, `call`, `data`, `model`, `variant`, `algorithm`, `method`,
-#'     `self_benchmark` (logical),
+#'     `self_benchmark` (logical), `bench` (self-benchmarking weights, groups and
+#'     augmentation columns, or `NULL`),
 #'     `iterations`, `mse_method`, `B`, `B_success`, `n_boot_failed`,
 #'     `boot_errors` (matrix of \eqn{\hat\theta^*_d - \theta^*_d}), `boot_theta`
 #'     (\eqn{\theta^*_d}), `boot_y` (\eqn{y^*_d}), `seed`,
@@ -243,6 +246,9 @@ merf_sae <- function(
       ),
       coefficients = coefficients,
       rf = res$rf,
+      rf_target = res$rf_target,
+      rf_seed = res$rf_seed,
+      rf_args = rf_args,
       sigma2_v = res$sigma2_v,
       fit = fh[c("sigma2_v", "beta", "vcov", "method")],
       formula = formula,
@@ -253,6 +259,7 @@ merf_sae <- function(
       algorithm = algorithm,
       method = method,
       self_benchmark = !is.null(sb),
+      bench = sb,
       iterations = res$iterations,
       mse_method = mse,
       B = if (mse == "bootstrap") as.integer(B) else NA_integer_,
@@ -279,7 +286,8 @@ merf_sae <- function(
 #' @param Z Optional self-benchmarking columns (all areas).
 #' @return List with `est`, `synthetic`, `random_effect`, `gamma`, `sigma2_v`,
 #'   `fh` (last linear Fay-Herriot fit), `rf`, `iterations`, `converged` and
-#'   `bench` (table of the self-benchmarking coefficients, or NULL).
+#'   `bench` (table of the self-benchmarking coefficients, or NULL), `rf_target`
+#'   and `rf_seed`.
 #' @noRd
 .merf_fit <- function(y, X, rf_x, vardir, sampled, variant, algorithm, method, rf_args, maxit, tol,
                       Z = NULL) {
@@ -342,7 +350,8 @@ merf_sae <- function(
   }
 
   .fhrf_combine(fixed, y, fh$sigma2_v, vardir, sampled,
-                list(fh = fh, rf = rf$fit, iterations = iterations, converged = converged, bench = bench))
+                list(fh = fh, rf = rf$fit, rf_target = target[sampled], rf_seed = rf_seed,
+                     iterations = iterations, converged = converged, bench = bench))
 }
 
 #' EBLUP step of Bukhari et al. (2026), eqs. (10) and (14)

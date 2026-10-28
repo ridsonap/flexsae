@@ -35,9 +35,11 @@ Available:
   or the direct estimates of the same survey; by group or in two stages), with
   the bootstrap MSE of the benchmarked estimates.
 
-Planned for the first release:
+- `select_flexsae()`, `importance_flexsae()`, `partial_flexsae()` and
+  `autoplot()` methods.
 
-- `select_flexsae()` and `autoplot()` methods.
+Planned for the first release: simulation studies, vignettes and a pkgdown
+site.
 
 Every method is checked against the linear Fay-Herriot model of the `sae`,
 `emdi` and `fastsae` packages, and in simulation studies that also report the

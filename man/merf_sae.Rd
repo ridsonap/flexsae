@@ -86,11 +86,14 @@ An object of class \code{c("flexsae_merf", "flexsae")}: a list with
 \item \code{coefficients}: table of the coefficients of the linear part of the final
 predictor (\code{"correct"}; no rows for \code{"replace"}), plus the
 self-benchmarking coefficients \verb{bench(<group>)}.
-\item \code{rf}: the \code{\link[ranger:ranger]{ranger::ranger()}} fit of the final forest.
+\item \code{rf}: the \code{\link[ranger:ranger]{ranger::ranger()}} fit of the final forest; \code{rf_target} (its
+response over the sampled areas), \code{rf_seed} and \code{rf_args} (the forest
+settings given).
 \item \code{sigma2_v}, \code{fit} (the last linear Fay-Herriot fit: \code{sigma2_v}, \code{beta},
 \code{vcov}, \code{method}),
 \code{formula}, \code{call}, \code{data}, \code{model}, \code{variant}, \code{algorithm}, \code{method},
-\code{self_benchmark} (logical),
+\code{self_benchmark} (logical), \code{bench} (self-benchmarking weights, groups and
+augmentation columns, or \code{NULL}),
 \code{iterations}, \code{mse_method}, \code{B}, \code{B_success}, \code{n_boot_failed},
 \code{boot_errors} (matrix of \eqn{\hat\theta^*_d - \theta^*_d}), \code{boot_theta}
 (\eqn{\theta^*_d}), \code{boot_y} (\eqn{y^*_d}), \code{seed},

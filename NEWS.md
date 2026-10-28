@@ -30,6 +30,13 @@
   estimates over the sampled areas, by group, without a post-hoc adjustment.
   For `merf_sae()` the augmentation is applied in the final EBLUP step with the
   forest as an offset, an extension not in Bukhari et al. (2026).
+* New `select_flexsae()`: stepwise selection on BIC, AIC or KIC from the
+  marginal ML likelihood for `pspline_sae()` (equal to `fastsae::step_sae()`
+  for linear terms), and Boruta selection for `merf_sae()`.
+* New `importance_flexsae()` (permutation or impurity importance of the
+  forest of `merf_sae()`), `partial_flexsae()` (partial dependence and ICE
+  curves of the fixed part, with intervals for `pspline_sae()`), and
+  `autoplot()` methods for models and benchmarked estimates.
 * Model objects keep the bootstrap truth and direct estimates of every
   replicate (`boot_theta`, `boot_y`).
 * `print()`, `summary()`, `coef()`, `fitted()` and `residuals()` methods for

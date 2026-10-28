@@ -66,4 +66,7 @@ Scripts in `benchmarks/` use the **installed** package, not `load_all()`.
   bootstrap replicates (`boot_errors`, `boot_theta`, `boot_y`); keep those fields in every model.
 - `R/self_benchmark.R`: `.self_benchmark_cols()` (z_d = w_d * vardir_d by group, Wang-Fuller-Qu
   eq. 23) and `.check_self_benchmark()`; used by both models through `bench_weight`/`bench_group`.
+- `R/select.R` (`select_flexsae()`, `.refit_flexsae()` refits with the object's settings,
+  `.pspline_ic()`), `R/importance.R`, `R/partial.R` (`.fixed_part_fun()`), `R/autoplot.R`
+  (re-exports `ggplot2::autoplot`).
 - `R/pspline_sae.R`, `R/methods.R` (print/summary/coef/fitted/residuals), `R/utils.R`.
