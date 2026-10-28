@@ -396,8 +396,8 @@ rmarkdown, covr`. GPL (>= 3).
 | 3b ✅ | self-benchmark (WFQ pers. 23) untuk `pspline_sae`/`merf_sae` | idem |
 | 4 ✅ | `select_flexsae()` (step pspline, Boruta merf), importance, partial/ICE, `autoplot` | idem; validasi seleksi (TPR/FPR) dipindah ke fase 5 |
 | 5 ✅ | Simulasi ADEMP (paket terinstal), vignette, pkgdown | tabel dengan MCSE, situs terbangun; hasil S9 |
-| 6 | `scfh_sae()` (SC-FH, eksperimental) + `select_flexsae(method = "grid")` + pilot lattice | test hijau; S10 kasus khusus vs sae/emdi; pilot S11 |
-| 6b | `boost_sae()` (XGBoost, cross-fitting) + mesin learner bersama merf | test hijau; merf identik dengan fixture pra-refactor; S12 simulasi |
+| 6 ✅ | `scfh_sae()` (SC-FH, eksperimental) + `select_flexsae(method = "grid")` + pilot lattice | test hijau; S10 kasus khusus vs sae/emdi; pilot S11 |
+| 6b ✅ | `boost_sae()` (XGBoost, cross-fitting) + mesin learner bersama merf | test hijau; merf identik dengan fixture pra-refactor; S12 simulasi (titik) |
 | 7 | Rencana lanjutan §2.6 | – |
 
 Setiap fase: `devtools::document()` → `devtools::test()` → `R CMD check --as-cran`; hasil dilaporkan

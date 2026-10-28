@@ -2,6 +2,9 @@
 #   Rscript benchmarks/simulation/run.R point 300 10   # study, replicates, cores
 #   Rscript benchmarks/simulation/run.R mse 200 10      # bootstrap B = 100 (methods.R)
 #   Rscript benchmarks/simulation/run.R point 20 10 B,C /tmp/pilot  # scenarios, output dir
+#   Rscript benchmarks/simulation/run.R point 300 10 B,C out fh_linear,boost_replace  # methods
+# Designs and replicate streams depend on the position of the scenario in the
+# full list, so runs on a subset of scenarios or methods reproduce the data.
 # Uses the installed package (R CMD INSTALL . --preclean). One file per
 # scenario in benchmarks/simulation/results/; existing files are skipped.
 `%||%` <- function(x, y) if (is.null(x) || is.na(x)) y else x
@@ -9,7 +12,8 @@ args <- commandArgs(TRUE)
 study <- args[1] %||% "point"
 R <- as.integer(args[2] %||% "300")
 cores <- as.integer(args[3] %||% "10")
-only <- if (length(args) >= 4) strsplit(args[4], ",")[[1]] else NULL
+only <- if (length(args) >= 4 && args[4] != "all") strsplit(args[4], ",")[[1]] else NULL
+methods <- if (length(args) >= 6) strsplit(args[6], ",")[[1]] else NULL
 
 suppressPackageStartupMessages({
   library(flexsae)
@@ -22,13 +26,14 @@ source("benchmarks/simulation/dgp.R")
 source("benchmarks/simulation/methods.R")
 
 scenarios <- if (study == "point") point_scenarios() else mse_scenarios()
+position <- setNames(seq_along(scenarios), vapply(scenarios, `[[`, "", "id"))
 if (!is.null(only)) scenarios <- Filter(function(s) s$id %in% only, scenarios)
 out_dir <- if (length(args) >= 5) args[5] else file.path("benchmarks/simulation/results", study)
 dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
 RNGkind("L'Ecuyer-CMRG")
-for (i in seq_along(scenarios)) {
-  sc <- scenarios[[i]]
+for (sc in scenarios) {
+  i <- position[[sc$id]]
   file <- file.path(out_dir, paste0(sc$id, ".rds"))
   if (file.exists(file)) next
   design <- make_design(sc, seed = 1000 + i)
@@ -44,7 +49,7 @@ for (i in seq_along(scenarios)) {
     assign(".Random.seed", streams[[r]], envir = globalenv())
     rep <- draw_replicate(sc, design)
     res <- suppressWarnings(fit_methods(rep$data, model_covariates(sc$shape), mse = study == "mse",
-                                        seed = r))
+                                        seed = r, methods = methods))
     list(theta = rep$theta, res = res)
   }, mc.cores = cores, mc.preschedule = FALSE)
   saveRDS(list(scenario = sc, design = design, R = R, reps = reps,

@@ -69,6 +69,9 @@ and 10% unsampled areas; A2 also with half the non-linearity
 `pspline_sae()` with `s(x, k = 8)` for every covariate (`k = 5` for
 \(D \le 50\)); `merf_sae()` with `variant = "replace"` and `"correct"`
 (algorithm `"fhrf"`, 500 trees) and the experimental `algorithm = "merf"`;
+the experimental `boost_sae()` with both variants and its defaults (one-pass,
+`nrounds` by cross-validation; point estimates only, run separately on the
+same replicates);
 BART-FH from `nlfh::fit_fh_bart()` with its defaults (sampled areas only).
 
 **Performance.** For each replicate, the mean over the areas of the squared
@@ -106,6 +109,11 @@ stream per replicate.
   covariate design (the paper does not give its own) the terms are close to
   linear, which the linear part of `"correct"` captures and a forest
   approximates with steps.
+- **Experimental `boost_sae()`.** With `variant = "correct"` it loses at
+  most a few percent to the linear model (scenarios B: `r rng(b_scs, "boost_correct")`), but
+  gains little when the truth is non-linear (sine `r rt("A2", "boost_correct")`,
+  mixed `r rt("C", "boost_correct")`). With `"replace"` it behaves like the
+  random forest (B: `r rng(b_scs, "boost_replace")`).
 - **Experimental `algorithm = "merf"`.** Better than `"fhrf"` for A1 and A4,
   worse in most other scenarios; it stays experimental.
 - **MSE.** The bootstrap MSE of `pspline_sae()` is slightly too small (median
@@ -125,8 +133,10 @@ more accurate), sampled areas, with MCSE in parentheses.
 
 ```{r ratio-table}
 p <- sim$point[sim$point$areas == "sampled", ]
-methods <- c("pspline", "merf_replace", "merf_correct", "merf_iterative", "bart_fh", "direct")
-labels <- c("pspline", "merf replace", "merf correct", "merf iterative", "BART-FH", "direct")
+methods <- c("pspline", "merf_replace", "merf_correct", "merf_iterative", "boost_replace", "boost_correct",
+             "bart_fh", "direct")
+labels <- c("pspline", "merf replace", "merf correct", "merf iterative", "boost replace", "boost correct",
+            "BART-FH", "direct")
 tab <- data.frame(scenario = unique(p$scenario))
 for (i in seq_along(methods)) {
   m <- p[p$method == methods[i], ]
@@ -145,7 +155,8 @@ Scenarios in which a flexsae model has a mean squared error above the linear
 Fay-Herriot model by more than two MCSE:
 
 ```{r losses}
-fl <- p[p$method %in% c("pspline", "merf_replace", "merf_correct", "merf_iterative"), ]
+fl <- p[p$method %in% c("pspline", "merf_replace", "merf_correct", "merf_iterative", "boost_replace",
+                        "boost_correct"), ]
 loss <- fl[fl$ratio_fh - 2 * fl$ratio_mcse > 1, c("scenario", "method", "ratio_fh", "ratio_mcse")]
 loss$ratio_fh <- fmt(loss$ratio_fh)
 loss$ratio_mcse <- fmt(loss$ratio_mcse)

@@ -230,3 +230,30 @@ Bagian 2 (K = 3, φ = 0,5, R = 100, B = 100, 1,1 jam): rasio MSE bootstrap / MSE
 median **1,00**, rasio rata-rata **0,985**, P10–P90 0,84–1,18; per rezim 1,01 / 0,99 / 0,98; semua replikat
 bootstrap berhasil. Paper (Tabel S16, Skenario 3, desain ketinggian): median 1,008, akurasi relatif 0,987.
 
+### S12 — `boost_sae()` di simulasi titik fase 5 (28 Okt 2026)
+
+`benchmarks/simulation/run.R point 300 10 all benchmarks/simulation/results/boost fh_linear,boost_replace,boost_correct`:
+24 skenario S9, R = 300, replikat **identik** dengan run utama (stream per posisi skenario; MSE FH linear sama persis),
+default `boost_sae()` (one-pass, eta 0,05, max_depth 2, nrounds dari xgb.cv). Tidak ada replikat gagal. Hanya titik;
+MSE bootstrap boost belum dievaluasi.
+
+| Skenario | boost replace | boost correct | pspline | merf replace | merf correct |
+|---|---|---|---|---|---|
+| B | 1,063 | 1,003 | 1,010 | 1,067 | 1,050 |
+| B_D30 / B_ratio0,25 | 1,157 / 1,255 | 1,009 / 1,026 | 1,032 / 1,024 | 1,127 / 1,395 | 1,066 / 1,378 |
+| A1 | 0,940 | 0,942 | 0,801 | 0,933 | 0,934 |
+| A2 | 0,953 | 0,975 | 0,905 | 0,950 | 0,957 |
+| A2_ratio0,25 | 1,037 | 0,996 | 0,948 | 1,124 | 1,127 |
+| A3 | 0,994 | 0,995 | 0,998 | 0,992 | 0,997 |
+| A4 | 0,952 | 0,964 | 0,975 | 0,951 | 0,954 |
+| A5 | 1,003 | 0,948 | 0,773 | 1,158 | 0,939 |
+| C | 0,933 | 0,965 | 0,817 | 0,961 | 0,968 |
+
+MCSE ≤ 0,011. `correct` memenuhi hipotesis B (rasio ≤ 1,05) di semua variasi B, satu-satunya model non-linear selain
+pspline; keuntungannya pada bentuk non-linear kecil (0,94–0,99). Sebabnya (dicek pada 5 replikat per skenario): early stopping
+xgb.cv pada residual FH linear memilih 1 ronde di B (4 dari 5 replikat) dan 3–68 ronde di A2 (eta 0,05), jadi booster
+nyaris nol atau kurang belajar; `replace` memilih 57–192 ronde. Default eta/nrounds untuk `correct` mungkin perlu
+ditinjau (fase lanjutan). `replace` mirip
+`merf replace`, lebih baik pada rasio 0,25 dan A5. Median waktu per fit 0,07–0,34 detik. Tidak ada metode tree yang
+mendekati pspline untuk efek aditif mulus; boost dan merf unggul hanya pada interaksi A4.
+

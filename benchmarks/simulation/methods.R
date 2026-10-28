@@ -55,6 +55,15 @@ fit_methods <- function(dat, covariates, mse = FALSE, B = 100, seed = NULL, meth
     timed("merf_iterative", from_flexsae(flexsae::merf_sae(
       f_lin, "psi", data = dat, variant = "replace", algorithm = "merf", mse = "none", seed = seed
     )))
+    # experimental; not part of the default run (pass methods = "boost_replace", ...)
+    if (!is.null(methods)) {
+      timed("boost_replace", from_flexsae(flexsae::boost_sae(
+        f_lin, "psi", data = dat, variant = "replace", mse = "none", seed = seed
+      )))
+      timed("boost_correct", from_flexsae(flexsae::boost_sae(
+        f_lin, "psi", data = dat, variant = "correct", mse = "none", seed = seed
+      )))
+    }
   }
   if (all_sampled) {
     timed("bart_fh", {

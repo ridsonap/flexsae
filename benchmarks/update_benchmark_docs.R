@@ -6,6 +6,13 @@ source("benchmarks/simulation/dgp.R")
 
 point <- summarise_dir("benchmarks/simulation/results/point", summarise_point)
 mse <- summarise_dir("benchmarks/simulation/results/mse", summarise_mse)
+# boost_sae() runs separately on the same replicates (check S12 in DISCREPANCIES.md):
+#   Rscript benchmarks/simulation/run.R point 300 10 all benchmarks/simulation/results/boost \
+#     fh_linear,boost_replace,boost_correct
+if (dir.exists("benchmarks/simulation/results/boost")) {
+  boost <- summarise_dir("benchmarks/simulation/results/boost", summarise_point)
+  point <- rbind(point, boost[boost$method != "fh_linear", ])
+}
 
 describe <- function(scs) {
   do.call(rbind, lapply(scs, function(s) {
